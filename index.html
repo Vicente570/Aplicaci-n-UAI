@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis Ramos</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mis Ramos">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Mis Ramos","short_name":"Mis Ramos","display":"standalone","background_color":"%23f9f9f7","theme_color":"%232a78d6"}'>
+<style>
+/* ============ tokens ============ */
+:root{
+  color-scheme: light;
+  --bg:#f9f9f7; --card:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --line:#e1e0d9; --hair:rgba(11,11,11,.10); --wash:rgba(11,11,11,.045);
+  --good:#0ca30c; --goodtxt:#006300; --warn:#fab219; --warntxt:#8a5b00;
+  --crit:#d03b3b; --crittxt:#b02a2a; --acc:#2a78d6;
+  --r:16px; --rs:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#0d0d0d; --card:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --line:#2c2c2a; --hair:rgba(255,255,255,.12); --wash:rgba(255,255,255,.06);
+    --goodtxt:#2fbf2f; --warntxt:#fab219; --crittxt:#e66767; --acc:#3987e5;
+  }
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom));
+  overscroll-behavior-y:none;
+}
+.app{max-width:560px;margin:0 auto;padding:0 14px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+h1,h2,h3{margin:0;font-weight:700}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ============ header ============ */
+.top{
+  position:sticky;top:0;z-index:20;background:var(--bg);background:color-mix(in srgb,var(--bg) 88%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  padding:calc(10px + env(safe-area-inset-top)) 0 8px;margin:0 -14px 6px;border-bottom:1px solid var(--hair);
+}
+.top .in{max-width:560px;margin:0 auto;padding:0 14px;display:flex;align-items:center;gap:10px;min-height:38px}
+.top h1{font-size:21px;letter-spacing:-.02em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .sub{font-size:13px;color:var(--ink2);font-weight:400;display:block;margin-top:1px}
+.pill{font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--wash);color:var(--ink2);white-space:nowrap}
+.pill.warn{background:var(--wash);background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warntxt)}
+.pill.crit{background:var(--wash);background:color-mix(in srgb,var(--crit) 14%,transparent);color:var(--crittxt)}
+.back{font-size:15px;font-weight:600;color:var(--acc);display:flex;align-items:center;gap:2px;padding:6px 8px 6px 0}
+
+/* ============ tab bar ============ */
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:var(--card);background:color-mix(in srgb,var(--card) 92%,transparent);
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  border-top:1px solid var(--hair);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+}
+.tabbar .in{max-width:560px;margin:0 auto;display:flex}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-size:10.5px;font-weight:600;padding:4px 0;border-radius:10px}
+.tab svg{width:24px;height:24px}
+.tab.on{color:var(--acc)}
+
+/* ============ cards & lists ============ */
+.card{background:var(--card);border:1px solid var(--hair);border-radius:var(--r);padding:14px;margin:10px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.sec{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 2px 2px}
+.row{display:flex;align-items:center;gap:10px}
+.row .grow{flex:1;min-width:0}
+.list>*{border-top:1px solid var(--line);padding:11px 0}
+.list>*:first-child{border-top:0;padding-top:2px}
+.list>*:last-child{padding-bottom:2px}
+.dot{width:10px;height:10px;border-radius:99px;flex:none;background:var(--c,var(--acc))}
+.t1{font-weight:600;font-size:15.5px}
+.t2{font-size:13.5px;color:var(--ink2)}
+.t3{font-size:12.5px;color:var(--muted)}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strike{text-decoration:line-through;opacity:.55}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2.5px 8px;border-radius:99px;background:var(--wash);color:var(--ink2);white-space:nowrap}
+.badge.ev{background:var(--wash);background:color-mix(in srgb,var(--c,var(--acc)) 14%,transparent);color:var(--ink)}
+.badge.good{background:var(--wash);background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--goodtxt)}
+.badge.warn{background:var(--wash);background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warntxt)}
+.badge.crit{background:var(--wash);background:color-mix(in srgb,var(--crit) 13%,transparent);color:var(--crittxt)}
+.hint{font-size:12.5px;color:var(--muted);margin:8px 2px 0}
+
+/* ============ botones ============ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:15px;
+  padding:11px 16px;border-radius:13px;background:var(--wash);color:var(--ink);width:100%}
+.btn.primary{background:var(--acc);color:#fff}
+.btn.danger{background:var(--wash);background:color-mix(in srgb,var(--crit) 12%,transparent);color:var(--crittxt)}
+.btn.mini{width:auto;padding:7px 12px;font-size:13.5px;border-radius:10px}
+.btn:active{opacity:.7}
+.iconbtn{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--wash);color:var(--ink2);flex:none;font-size:15px}
+
+/* segmentado asistencia */
+.seg3{display:flex;background:var(--wash);border-radius:11px;padding:3px;gap:3px;flex:none}
+.seg3 button{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;color:var(--muted);white-space:nowrap}
+.seg3 button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:var(--ink)}
+.seg3 button.on.a{color:var(--goodtxt)}
+.seg3 button.on.f{color:var(--crittxt)}
+.seg3 button.on.j{color:var(--warntxt)}
+
+/* segmentado de pestañas del ramo */
+.seg{display:flex;background:var(--wash);border-radius:12px;padding:3px;gap:3px;margin:10px 0}
+.seg button{flex:1;font-size:13.5px;font-weight:600;padding:8px 4px;border-radius:9px;color:var(--muted)}
+.seg button.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:var(--ink)}
+
+/* ============ métricas ============ */
+.hero{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.hero small{font-size:16px;font-weight:600;color:var(--ink2)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.kpi{background:var(--wash);border-radius:var(--rs);padding:10px 12px}
+.kpi .v{font-size:19px;font-weight:700}
+.kpi .l{font-size:12px;color:var(--ink2);margin-top:1px}
+.bar{height:6px;border-radius:99px;background:var(--wash);overflow:hidden;position:relative}
+.bar>i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--c,var(--acc));min-width:3px}
+.bar>b.min{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--muted);border-radius:2px}
+.ringwrap{position:relative;width:84px;height:84px;flex:none}
+.ringwrap svg{transform:rotate(-90deg)}
+.ringwrap .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:19px}
+.ringwrap .pct small{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+
+/* ============ ramo header ============ */
+.ramohead{border-radius:var(--r);padding:16px 14px;margin:10px 0;color:#fff;background:var(--c,#2a78d6);
+  background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 72%,#000 12%))}
+.ramohead .em{font-size:30px}
+.ramohead h2{font-size:20px;letter-spacing:-.01em}
+.ramohead .t2{color:rgba(255,255,255,.85)}
+
+/* ============ calendario ============ */
+.calnav{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+.calnav h3{flex:1;text-align:center;font-size:16.5px;text-transform:capitalize}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}
+.calgrid .wd{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:4px 0;text-transform:uppercase}
+.cday{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;font-weight:500;position:relative;background:none}
+.cday.out{opacity:.28}
+.cday.today{font-weight:800;color:var(--acc)}
+.cday.sel{background:var(--wash);outline:2px solid var(--acc)}
+.cday.fer{color:var(--muted);text-decoration:line-through}
+.cdots{display:flex;gap:2.5px;height:5px}
+.cdots i{width:5px;height:5px;border-radius:99px;background:var(--c)}
+.fab{position:fixed;right:calc(16px + env(safe-area-inset-right));bottom:calc(88px + env(safe-area-inset-bottom));z-index:25;
+  width:54px;height:54px;border-radius:99px;background:var(--acc);color:#fff;font-size:28px;font-weight:400;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+/* ============ formularios / modales ============ */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:88dvh;overflow:auto;border-radius:20px 20px 0 0;
+  padding:8px 16px calc(20px + env(safe-area-inset-bottom))}
+.sheet .grab{width:38px;height:4.5px;border-radius:99px;background:var(--line);margin:6px auto 10px}
+.sheet h3{font-size:18px;margin:4px 0 10px}
+.fld{margin:12px 0}
+.fld label{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.inp,.fld input,.fld select{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px;color:var(--ink)}
+.fld input:focus,.inp:focus{outline:2px solid var(--acc);border-color:transparent}
+.frow{display:flex;gap:8px}
+.frow>*{flex:1;min-width:0}
+.notain{width:74px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 6px;font-size:16px;font-weight:700;color:var(--ink)}
+.notain:focus{outline:2px solid var(--acc);border-color:transparent}
+.notain.vacia{color:var(--muted);font-weight:500}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.sw button{width:34px;height:34px;border-radius:99px;border:3px solid transparent}
+.sw button.on{border-color:var(--ink)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:60;
+  background:var(--ink);color:var(--bg);font-size:14px;font-weight:600;padding:10px 18px;border-radius:99px;
+  box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:88%;text-align:center;opacity:0;transition:opacity .25s}
+.toast.on{opacity:1}
+
+/* pantalla clave / carga */
+.gate{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.gate .box{width:100%;max-width:340px;text-align:center}
+.gate .logo{width:86px;height:86px;border-radius:22px;margin:0 auto 14px;background:linear-gradient(135deg,#2a78d6,#4a3aa7);
+  display:flex;align-items:center;justify-content:center;font-size:44px}
+.spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--acc);border-radius:99px;margin:14px auto;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.demo-banner{background:var(--wash);background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warntxt);font-size:12.5px;font-weight:600;
+  padding:7px 12px;border-radius:10px;margin:8px 0;text-align:center}
+</style>
+</head>
+<body>
+<div id="gate"></div>
+<div class="app" id="app"></div>
+<nav class="tabbar" id="tabbar" style="display:none"><div class="in" id="tabs"></div></nav>
+<div id="modal"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   CONFIGURACIÓN — lo único que se edita a mano
+   ================================================================ */
+const CONFIG = {
+  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbxFy7kJPTaD-BU36rfGMrR9nY1MTncvom6tiWulSeCwc81xWe13rdu5O3qOT-Hiwp8oUw/exec",        // ← pega aquí la URL /exec de tu Apps Script
+  NOMBRE_APP:   "Mis Ramos"
+};
+
+const DEMO = !CONFIG.URL_PLANILLA;
+const DATOS_DEMO = {"Ramos": [{"id": "core301", "nombre": "Ética", "sigla": "CORE301", "seccion": "22", "profesor": "Cristián Rettig", "emoji": "⚖️", "color": "#2a78d6", "asist_min": 80, "orden": 1, "horario_txt": "Ma 16:30–17:40 · Ju 10:00–11:10", "horario_json": "[{\"d\": 2, \"i\": \"16:30\", \"f\": \"17:40\"}, {\"d\": 4, \"i\": \"10:00\", \"f\": \"11:10\"}]", "eximicion": "Top 20% del curso con promedio ≥ 5,5 (examen oral)", "reglas": "Asistencia mínima 80%: con menos repruebas automático (máx. 3,9). Las faltas justificadas (vía Pregrado) no entran al cálculo. Es obligatorio llevar el libro impreso de la lectura de cada clase. Controles y trabajos se hacen EN la clase indicada; si faltas, se justifica en Pregrado para dar la recuperativa a fin de semestre.", "activo": 1}, {"id": "core304", "nombre": "Arte y Humanidades", "sigla": "CORE304", "seccion": "11", "profesor": "Fernando Guzmán", "emoji": "🎨", "color": "#eb6834", "asist_min": 80, "orden": 2, "horario_txt": "Ma 15:00–16:10 · Mi 13:30–14:40", "horario_json": "[{\"d\": 2, \"i\": \"15:00\", \"f\": \"16:10\"}, {\"d\": 3, \"i\": \"13:30\", \"f\": \"14:40\"}]", "eximicion": "Top 20% del curso con nota de presentación ≥ 5,5", "reglas": "Asistencia mínima 80%. Entre 70–79%: interrogación oral para poder aprobar. Con 69% o menos: repruebas automático. Trabajos con visita a museo: foto tuya frente a la obra + referencias de la pauta, o el trabajo se califica con 1,0. Entregas por Webcursos (pasan por Turnitin).", "activo": 1}, {"id": "mgt105", "nombre": "Estrategia", "sigla": "MGT105", "seccion": "4", "profesor": "Por definir", "emoji": "♟️", "color": "#1baf7a", "asist_min": 75, "orden": 3, "horario_txt": "Lu 11:30–12:40 · Ju 11:30–14:10 (2 módulos)", "horario_json": "[{\"d\": 1, \"i\": \"11:30\", \"f\": \"12:40\"}, {\"d\": 4, \"i\": \"11:30\", \"f\": \"14:10\"}]", "eximicion": "", "reglas": "Asistencia ≥ 75% es requisito de aprobación. Prueba 2: nota mínima 3,0 y no hay eximición. Si faltas justificado a la Prueba 1, la Prueba 2 pasa a valer 70%. Una vez iniciada la clase se cierra la puerta. Escala: 60% de logro = 4,0. Celulares apagados.", "activo": 1}, {"id": "mgt300", "nombre": "Sociedad, Cultura y Política", "sigla": "MGT300", "seccion": "6", "profesor": "Naim Bro", "emoji": "🌍", "color": "#eda100", "asist_min": 75, "orden": 4, "horario_txt": "Ma 11:30–14:10 (2 módulos)", "horario_json": "[{\"d\": 2, \"i\": \"11:30\", \"f\": \"14:10\"}]", "eximicion": "Nota de presentación ≥ 5,0", "reglas": "Asistencia mínima 75%. Los controles de lectura son SORPRESA (uno por unidad, clase aleatoria): lleva las lecturas al día. Falta injustificada a una evaluación = 1,0. El programa es 'genérico y podría tener variaciones': confirma las fechas de pruebas en clases y muévelas aquí si cambian.", "activo": 1}, {"id": "mgt350", "nombre": "Gestión de Operaciones", "sigla": "MGT350", "seccion": "3", "profesor": "Sergio Fontecilla", "emoji": "⚙️", "color": "#e87ba4", "asist_min": "", "orden": 5, "horario_txt": "Lu 19:30–20:40 · Mi 15:00–17:40 (2 módulos)", "horario_json": "[{\"d\": 1, \"i\": \"19:30\", \"f\": \"20:40\"}, {\"d\": 3, \"i\": \"15:00\", \"f\": \"17:40\"}]", "eximicion": "", "reglas": "La asistencia no es obligatoria (no hay mínimo), pero hay nota de actividades en clases que no se puede recuperar. Sin examen: la fecha de examen se usa para la prueba recuperativa. Atraso de más de 10 min a una evaluación = 1,0.", "activo": 1}], "Fechas": [{"id": "core301-f01", "ramo": "core301", "fecha": "2026-08-04", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f02", "ramo": "core301", "fecha": "2026-08-06", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f03", "ramo": "core301", "fecha": "2026-08-11", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f04", "ramo": "core301", "fecha": "2026-08-13", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f05", "ramo": "core301", "fecha": "2026-08-18", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f06", "ramo": "core301", "fecha": "2026-08-20", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f07", "ramo": "core301", "fecha": "2026-08-25", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f08", "ramo": "core301", "fecha": "2026-08-27", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f09", "ramo": "core301", "fecha": "2026-09-01", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f10", "ramo": "core301", "fecha": "2026-09-03", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f11", "ramo": "core301", "fecha": "2026-09-08", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f12", "ramo": "core301", "fecha": "2026-09-10", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f13", "ramo": "core301", "fecha": "2026-09-15", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f14", "ramo": "core301", "fecha": "2026-09-17", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f15", "ramo": "core301", "fecha": "2026-09-22", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f16", "ramo": "core301", "fecha": "2026-09-24", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f17", "ramo": "core301", "fecha": "2026-09-29", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f18", "ramo": "core301", "fecha": "2026-10-01", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f19", "ramo": "core301", "fecha": "2026-10-06", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f20", "ramo": "core301", "fecha": "2026-10-08", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f21", "ramo": "core301", "fecha": "2026-10-13", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f22", "ramo": "core301", "fecha": "2026-10-15", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f23", "ramo": "core301", "fecha": "2026-10-20", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f24", "ramo": "core301", "fecha": "2026-10-22", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f25", "ramo": "core301", "fecha": "2026-10-27", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f26", "ramo": "core301", "fecha": "2026-10-29", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f27", "ramo": "core301", "fecha": "2026-11-03", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f28", "ramo": "core301", "fecha": "2026-11-05", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core301-f29", "ramo": "core301", "fecha": "2026-11-10", "ini": "16:30", "fin": "17:40", "estado": ""}, {"id": "core301-f30", "ramo": "core301", "fecha": "2026-11-12", "ini": "10:00", "fin": "11:10", "estado": ""}, {"id": "core304-f01", "ramo": "core304", "fecha": "2026-08-04", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f02", "ramo": "core304", "fecha": "2026-08-05", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f03", "ramo": "core304", "fecha": "2026-08-11", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f04", "ramo": "core304", "fecha": "2026-08-12", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f05", "ramo": "core304", "fecha": "2026-08-18", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f06", "ramo": "core304", "fecha": "2026-08-19", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f07", "ramo": "core304", "fecha": "2026-08-25", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f08", "ramo": "core304", "fecha": "2026-08-26", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f09", "ramo": "core304", "fecha": "2026-09-01", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f10", "ramo": "core304", "fecha": "2026-09-02", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f11", "ramo": "core304", "fecha": "2026-09-08", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f12", "ramo": "core304", "fecha": "2026-09-09", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f13", "ramo": "core304", "fecha": "2026-09-15", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f14", "ramo": "core304", "fecha": "2026-09-16", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f15", "ramo": "core304", "fecha": "2026-09-22", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f16", "ramo": "core304", "fecha": "2026-09-23", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f17", "ramo": "core304", "fecha": "2026-09-29", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f18", "ramo": "core304", "fecha": "2026-09-30", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f19", "ramo": "core304", "fecha": "2026-10-06", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f20", "ramo": "core304", "fecha": "2026-10-07", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f21", "ramo": "core304", "fecha": "2026-10-13", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f22", "ramo": "core304", "fecha": "2026-10-14", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f23", "ramo": "core304", "fecha": "2026-10-20", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f24", "ramo": "core304", "fecha": "2026-10-21", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f25", "ramo": "core304", "fecha": "2026-10-27", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f26", "ramo": "core304", "fecha": "2026-10-28", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f27", "ramo": "core304", "fecha": "2026-11-03", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f28", "ramo": "core304", "fecha": "2026-11-04", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "core304-f29", "ramo": "core304", "fecha": "2026-11-10", "ini": "15:00", "fin": "16:10", "estado": ""}, {"id": "core304-f30", "ramo": "core304", "fecha": "2026-11-11", "ini": "13:30", "fin": "14:40", "estado": ""}, {"id": "mgt105-f01", "ramo": "mgt105", "fecha": "2026-08-03", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f02", "ramo": "mgt105", "fecha": "2026-08-06", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f03", "ramo": "mgt105", "fecha": "2026-08-10", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f04", "ramo": "mgt105", "fecha": "2026-08-13", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f05", "ramo": "mgt105", "fecha": "2026-08-17", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f06", "ramo": "mgt105", "fecha": "2026-08-20", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f07", "ramo": "mgt105", "fecha": "2026-08-24", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f08", "ramo": "mgt105", "fecha": "2026-08-27", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f09", "ramo": "mgt105", "fecha": "2026-08-31", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f10", "ramo": "mgt105", "fecha": "2026-09-03", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f11", "ramo": "mgt105", "fecha": "2026-09-07", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f12", "ramo": "mgt105", "fecha": "2026-09-10", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f13", "ramo": "mgt105", "fecha": "2026-09-14", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f14", "ramo": "mgt105", "fecha": "2026-09-17", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f15", "ramo": "mgt105", "fecha": "2026-09-21", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f16", "ramo": "mgt105", "fecha": "2026-09-24", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f17", "ramo": "mgt105", "fecha": "2026-09-28", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f18", "ramo": "mgt105", "fecha": "2026-10-01", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f19", "ramo": "mgt105", "fecha": "2026-10-05", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f20", "ramo": "mgt105", "fecha": "2026-10-08", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f21", "ramo": "mgt105", "fecha": "2026-10-15", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f22", "ramo": "mgt105", "fecha": "2026-10-19", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f23", "ramo": "mgt105", "fecha": "2026-10-22", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f24", "ramo": "mgt105", "fecha": "2026-10-26", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f25", "ramo": "mgt105", "fecha": "2026-10-29", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f26", "ramo": "mgt105", "fecha": "2026-11-02", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f27", "ramo": "mgt105", "fecha": "2026-11-05", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt105-f28", "ramo": "mgt105", "fecha": "2026-11-09", "ini": "11:30", "fin": "12:40", "estado": ""}, {"id": "mgt105-f29", "ramo": "mgt105", "fecha": "2026-11-12", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f01", "ramo": "mgt300", "fecha": "2026-08-04", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f02", "ramo": "mgt300", "fecha": "2026-08-11", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f03", "ramo": "mgt300", "fecha": "2026-08-18", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f04", "ramo": "mgt300", "fecha": "2026-08-25", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f05", "ramo": "mgt300", "fecha": "2026-09-01", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f06", "ramo": "mgt300", "fecha": "2026-09-08", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f07", "ramo": "mgt300", "fecha": "2026-09-15", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f08", "ramo": "mgt300", "fecha": "2026-09-22", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f09", "ramo": "mgt300", "fecha": "2026-09-29", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f10", "ramo": "mgt300", "fecha": "2026-10-06", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f11", "ramo": "mgt300", "fecha": "2026-10-13", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f12", "ramo": "mgt300", "fecha": "2026-10-20", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f13", "ramo": "mgt300", "fecha": "2026-10-27", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f14", "ramo": "mgt300", "fecha": "2026-11-03", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt300-f15", "ramo": "mgt300", "fecha": "2026-11-10", "ini": "11:30", "fin": "14:10", "estado": ""}, {"id": "mgt350-f01", "ramo": "mgt350", "fecha": "2026-08-03", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f02", "ramo": "mgt350", "fecha": "2026-08-05", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f03", "ramo": "mgt350", "fecha": "2026-08-10", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f04", "ramo": "mgt350", "fecha": "2026-08-12", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f05", "ramo": "mgt350", "fecha": "2026-08-17", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f06", "ramo": "mgt350", "fecha": "2026-08-19", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f07", "ramo": "mgt350", "fecha": "2026-08-24", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f08", "ramo": "mgt350", "fecha": "2026-08-26", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f09", "ramo": "mgt350", "fecha": "2026-08-31", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f10", "ramo": "mgt350", "fecha": "2026-09-02", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f11", "ramo": "mgt350", "fecha": "2026-09-07", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f12", "ramo": "mgt350", "fecha": "2026-09-09", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f13", "ramo": "mgt350", "fecha": "2026-09-14", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f14", "ramo": "mgt350", "fecha": "2026-09-16", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f15", "ramo": "mgt350", "fecha": "2026-09-21", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f16", "ramo": "mgt350", "fecha": "2026-09-23", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f17", "ramo": "mgt350", "fecha": "2026-09-28", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f18", "ramo": "mgt350", "fecha": "2026-09-30", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f19", "ramo": "mgt350", "fecha": "2026-10-05", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f20", "ramo": "mgt350", "fecha": "2026-10-07", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f21", "ramo": "mgt350", "fecha": "2026-10-14", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f22", "ramo": "mgt350", "fecha": "2026-10-19", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f23", "ramo": "mgt350", "fecha": "2026-10-21", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f24", "ramo": "mgt350", "fecha": "2026-10-26", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f25", "ramo": "mgt350", "fecha": "2026-10-28", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f26", "ramo": "mgt350", "fecha": "2026-11-02", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f27", "ramo": "mgt350", "fecha": "2026-11-04", "ini": "15:00", "fin": "17:40", "estado": ""}, {"id": "mgt350-f28", "ramo": "mgt350", "fecha": "2026-11-09", "ini": "19:30", "fin": "20:40", "estado": ""}, {"id": "mgt350-f29", "ramo": "mgt350", "fecha": "2026-11-11", "ini": "15:00", "fin": "17:40", "estado": ""}], "Programa": [{"id": "core301-n1", "ramo": "core301", "n": 1, "tema": "Presentación del curso", "material": "", "eval": ""}, {"id": "core301-n2", "ramo": "core301", "n": 2, "tema": "Ética de las virtudes: Aristóteles, Ética a Nicómaco", "material": "📖 Llevar impreso: Ética a Nicómaco", "eval": "Control de lectura N°1"}, {"id": "core301-n3", "ramo": "core301", "n": 3, "tema": "Ética de las virtudes: Aristóteles, Ética a Nicómaco", "material": "📖 Llevar impreso: Ética a Nicómaco", "eval": ""}, {"id": "core301-n4", "ramo": "core301", "n": 4, "tema": "Ética de las virtudes: Aristóteles, Ética a Nicómaco", "material": "📖 Llevar impreso: Ética a Nicómaco", "eval": ""}, {"id": "core301-n5", "ramo": "core301", "n": 5, "tema": "Ética de las virtudes: Aristóteles, Ética a Nicómaco", "material": "📖 Llevar impreso: Ética a Nicómaco", "eval": ""}, {"id": "core301-n6", "ramo": "core301", "n": 6, "tema": "Ética de las virtudes: Sto. Tomás, Summa Theologiae (selección)", "material": "📖 Llevar impreso: Summa Theologiae (selección)", "eval": "Control de lectura N°2"}, {"id": "core301-n7", "ramo": "core301", "n": 7, "tema": "Ética de las virtudes: Sto. Tomás, Summa Theologiae (selección)", "material": "📖 Llevar impreso: Summa Theologiae (selección)", "eval": ""}, {"id": "core301-n8", "ramo": "core301", "n": 8, "tema": "Ética de las virtudes: Sto. Tomás, Summa Theologiae (selección)", "material": "📖 Llevar impreso: Summa Theologiae (selección)", "eval": ""}, {"id": "core301-n9", "ramo": "core301", "n": 9, "tema": "Ética de las virtudes: Sto. Tomás, Summa Theologiae (selección)", "material": "📖 Llevar impreso: Summa Theologiae (selección)", "eval": ""}, {"id": "core301-n10", "ramo": "core301", "n": 10, "tema": "Trabajo escrito N°1: ética de las virtudes (se redacta en clase)", "material": "✍️ Solo lápiz y papel — sin textos ni apuntes", "eval": "Trabajo escrito N°1"}, {"id": "core301-n11", "ramo": "core301", "n": 11, "tema": "Análisis de casos: ética de las virtudes", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core301-n12", "ramo": "core301", "n": 12, "tema": "Ética deontológica: Kant, Fundamentación para una metafísica de las costumbres, caps. 1–2", "material": "📖 Llevar impreso: Fundamentación… (ed. Core UAI)", "eval": "Control de lectura N°3"}, {"id": "core301-n13", "ramo": "core301", "n": 13, "tema": "Ética deontológica: Kant, Fundamentación para una metafísica de las costumbres, caps. 1–2", "material": "📖 Llevar impreso: Fundamentación… (ed. Core UAI)", "eval": ""}, {"id": "core301-n14", "ramo": "core301", "n": 14, "tema": "Ética deontológica: Kant, Fundamentación para una metafísica de las costumbres, caps. 1–2", "material": "📖 Llevar impreso: Fundamentación… (ed. Core UAI)", "eval": ""}, {"id": "core301-n15", "ramo": "core301", "n": 15, "tema": "Ética deontológica: Kant, La metafísica de las costumbres (selección)", "material": "📖 Llevar impreso: La metafísica de las costumbres", "eval": "Control de lectura N°4"}, {"id": "core301-n16", "ramo": "core301", "n": 16, "tema": "Ética deontológica: Kant, La metafísica de las costumbres (selección)", "material": "📖 Llevar impreso: La metafísica de las costumbres", "eval": ""}, {"id": "core301-n17", "ramo": "core301", "n": 17, "tema": "Ética deontológica: Kant, La metafísica de las costumbres (selección)", "material": "📖 Llevar impreso: La metafísica de las costumbres", "eval": ""}, {"id": "core301-n18", "ramo": "core301", "n": 18, "tema": "Trabajo escrito N°2: ética deontológica (en clase)", "material": "✍️ Solo lápiz y papel — sin textos ni apuntes", "eval": "Trabajo escrito N°2"}, {"id": "core301-n19", "ramo": "core301", "n": 19, "tema": "Análisis de casos: ética deontológica", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core301-n20", "ramo": "core301", "n": 20, "tema": "Ética utilitarista: Bentham, Los principios de la moral y la legislación, caps. 1–5", "material": "📖 Llevar impreso: Bentham, Los principios…", "eval": "Control de lectura N°5"}, {"id": "core301-n21", "ramo": "core301", "n": 21, "tema": "Ética utilitarista: Bentham, Los principios de la moral y la legislación, caps. 1–5", "material": "📖 Llevar impreso: Bentham, Los principios…", "eval": ""}, {"id": "core301-n22", "ramo": "core301", "n": 22, "tema": "Ética utilitarista: Bentham, Los principios de la moral y la legislación, caps. 1–5", "material": "📖 Llevar impreso: Bentham, Los principios…", "eval": ""}, {"id": "core301-n23", "ramo": "core301", "n": 23, "tema": "Ética utilitarista: Mill, El utilitarismo", "material": "📖 Llevar impreso: El utilitarismo (ed. Core UAI)", "eval": "Control de lectura N°6"}, {"id": "core301-n24", "ramo": "core301", "n": 24, "tema": "Ética utilitarista: Mill, El utilitarismo", "material": "📖 Llevar impreso: El utilitarismo (ed. Core UAI)", "eval": ""}, {"id": "core301-n25", "ramo": "core301", "n": 25, "tema": "Ética utilitarista: Mill, El utilitarismo", "material": "📖 Llevar impreso: El utilitarismo (ed. Core UAI)", "eval": ""}, {"id": "core301-n26", "ramo": "core301", "n": 26, "tema": "Trabajo escrito N°3: ética utilitarista (en clase)", "material": "✍️ Solo lápiz y papel — sin textos ni apuntes", "eval": "Trabajo escrito N°3"}, {"id": "core301-n27", "ramo": "core301", "n": 27, "tema": "Análisis de casos: ética utilitarista", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core301-n28", "ramo": "core301", "n": 28, "tema": "Análisis de casos: las tres corrientes éticas", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core301-n29", "ramo": "core301", "n": 29, "tema": "Análisis de casos: las tres corrientes éticas", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core301-n30", "ramo": "core301", "n": 30, "tema": "Análisis de casos: las tres corrientes éticas", "material": "📝 Llevar preparado el análisis del caso (lo entrega el profesor antes)", "eval": ""}, {"id": "core304-n1", "ramo": "core304", "n": 1, "tema": "Presentación de la asignatura / Del Ver al Mirar", "material": "", "eval": ""}, {"id": "core304-n2", "ramo": "core304", "n": 2, "tema": "", "material": "", "eval": ""}, {"id": "core304-n3", "ramo": "core304", "n": 3, "tema": "", "material": "", "eval": ""}, {"id": "core304-n4", "ramo": "core304", "n": 4, "tema": "", "material": "", "eval": ""}, {"id": "core304-n5", "ramo": "core304", "n": 5, "tema": "Evaluación 1 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 1"}, {"id": "core304-n6", "ramo": "core304", "n": 6, "tema": "", "material": "", "eval": ""}, {"id": "core304-n7", "ramo": "core304", "n": 7, "tema": "", "material": "", "eval": ""}, {"id": "core304-n8", "ramo": "core304", "n": 8, "tema": "", "material": "", "eval": ""}, {"id": "core304-n9", "ramo": "core304", "n": 9, "tema": "", "material": "", "eval": ""}, {"id": "core304-n10", "ramo": "core304", "n": 10, "tema": "Evaluación 2 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 2"}, {"id": "core304-n11", "ramo": "core304", "n": 11, "tema": "", "material": "", "eval": ""}, {"id": "core304-n12", "ramo": "core304", "n": 12, "tema": "", "material": "", "eval": ""}, {"id": "core304-n13", "ramo": "core304", "n": 13, "tema": "", "material": "", "eval": ""}, {"id": "core304-n14", "ramo": "core304", "n": 14, "tema": "", "material": "", "eval": ""}, {"id": "core304-n15", "ramo": "core304", "n": 15, "tema": "Evaluación 3 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 3"}, {"id": "core304-n16", "ramo": "core304", "n": 16, "tema": "", "material": "", "eval": ""}, {"id": "core304-n17", "ramo": "core304", "n": 17, "tema": "", "material": "", "eval": ""}, {"id": "core304-n18", "ramo": "core304", "n": 18, "tema": "", "material": "", "eval": ""}, {"id": "core304-n19", "ramo": "core304", "n": 19, "tema": "", "material": "", "eval": ""}, {"id": "core304-n20", "ramo": "core304", "n": 20, "tema": "Evaluación 4 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 4"}, {"id": "core304-n21", "ramo": "core304", "n": 21, "tema": "", "material": "", "eval": ""}, {"id": "core304-n22", "ramo": "core304", "n": 22, "tema": "", "material": "", "eval": ""}, {"id": "core304-n23", "ramo": "core304", "n": 23, "tema": "", "material": "", "eval": ""}, {"id": "core304-n24", "ramo": "core304", "n": 24, "tema": "Evaluación 5 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 5"}, {"id": "core304-n25", "ramo": "core304", "n": 25, "tema": "", "material": "", "eval": ""}, {"id": "core304-n26", "ramo": "core304", "n": 26, "tema": "", "material": "", "eval": ""}, {"id": "core304-n27", "ramo": "core304", "n": 27, "tema": "", "material": "", "eval": ""}, {"id": "core304-n28", "ramo": "core304", "n": 28, "tema": "", "material": "", "eval": ""}, {"id": "core304-n29", "ramo": "core304", "n": 29, "tema": "Evaluación 6 — trabajo de análisis", "material": "📋 La pauta se entrega 1 semana antes — revisa Webcursos", "eval": "Evaluación 6"}, {"id": "core304-n30", "ramo": "core304", "n": 30, "tema": "", "material": "", "eval": ""}, {"id": "mgt300-n1", "ramo": "mgt300", "n": 1, "tema": "S1–2 · Presentación del curso + U1: Identidad, capitalismo y redes sociales (intro)", "material": "📖 Consigue: Han, La sociedad del cansancio", "eval": ""}, {"id": "mgt300-n2", "ramo": "mgt300", "n": 2, "tema": "S3–4 · 1.1 La autoexplotación del individuo en el capitalismo tardío", "material": "📖 Lectura: Han, La sociedad del cansancio", "eval": ""}, {"id": "mgt300-n3", "ramo": "mgt300", "n": 3, "tema": "S5–6 · Presentaciones + 1.2 La sociedad del cansancio y sus malestares", "material": "📖 Han, La sociedad del cansancio", "eval": ""}, {"id": "mgt300-n4", "ramo": "mgt300", "n": 4, "tema": "S7–8 · Presentaciones + 1.3 ¿Identidad o identidades? La sociedad digital", "material": "📖 Han, En el enjambre + ensayos de Harari", "eval": ""}, {"id": "mgt300-n5", "ramo": "mgt300", "n": 5, "tema": "S9–10 · 1.3 (continuación) + Presentaciones", "material": "📖 Han, En el enjambre + Harari", "eval": ""}, {"id": "mgt300-n6", "ramo": "mgt300", "n": 6, "tema": "S11–12 · PRUEBA 1 + U2: Comunicación, cultura e irrupción digital (intro)", "material": "📚 Estudiar toda la Unidad 1", "eval": "Prueba 1"}, {"id": "mgt300-n7", "ramo": "mgt300", "n": 7, "tema": "S13–14 · 2.1 El surgimiento del individuo + Presentaciones", "material": "📖 Van Dülmen, El descubrimiento del individuo (pp. 123–164)", "eval": ""}, {"id": "mgt300-n8", "ramo": "mgt300", "n": 8, "tema": "S15–16 · 2.2 El sonido de la palabra y la grafía de la voz + Presentaciones", "material": "📖 Ong, Oralidad y escritura (selección)", "eval": ""}, {"id": "mgt300-n9", "ramo": "mgt300", "n": 9, "tema": "S17–18 · 2.3 Desafíos posmodernos de la irrupción digital", "material": "📖 Hunt, ¿La historia, por qué importa? (selección)", "eval": ""}, {"id": "mgt300-n10", "ramo": "mgt300", "n": 10, "tema": "S19–20 · Presentaciones + PRUEBA 2", "material": "📚 Estudiar toda la Unidad 2", "eval": "Prueba 2"}, {"id": "mgt300-n11", "ramo": "mgt300", "n": 11, "tema": "S21–22 · U3: Desarrollo (intro) + 3.1 Desarrollo sostenible y sustentable", "material": "📖 Sen (intro y cap. 2) · Galor cap. 6 · Aghion cap. 9", "eval": ""}, {"id": "mgt300-n12", "ramo": "mgt300", "n": 12, "tema": "S23–24 · Presentaciones + 3.2 Innovación, desigualdad y (sub)desarrollo", "material": "📖 Aghion, cap. 5", "eval": ""}, {"id": "mgt300-n13", "ramo": "mgt300", "n": 13, "tema": "S25–26 · Presentaciones + 3.3 El papel de las instituciones", "material": "📖 Sen cap. 6 · Han, Infocracia cap. 2", "eval": ""}, {"id": "mgt300-n14", "ramo": "mgt300", "n": 14, "tema": "S27–28 · Presentaciones + 3.4 Trabajo y empresa en la 4ª Revolución Industrial", "material": "📖 Galor cap. 4 · Aghion cap. 3", "eval": ""}, {"id": "mgt300-n15", "ramo": "mgt300", "n": 15, "tema": "S29–30 · Presentaciones + PRUEBA 3", "material": "📚 Estudiar toda la Unidad 3", "eval": "Prueba 3"}], "Componentes": [{"id": "core301-cont", "ramo": "core301", "nombre": "Controles de lectura", "peso": 20, "detalle": "Promedio de 6 controles (20–25 min, al inicio de la clase)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "core301-trab", "ramo": "core301", "nombre": "Trabajos escritos", "peso": 20, "detalle": "Promedio de 3 trabajos redactados en clase", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "core301-part", "ramo": "core301", "nombre": "Participación", "peso": 35, "detalle": "Promedio de 3 notas parciales (clases 1–11, 12–20, 21–30)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "core301-exam", "ramo": "core301", "nombre": "Examen oral", "peso": 25, "es_examen": 1, "detalle": "Análisis de casos en grupos de 3–6", "nota_min": "", "prom_directo": ""}, {"id": "core304-trab", "ramo": "core304", "nombre": "Trabajos de análisis", "peso": 37.5, "detalle": "6 trabajos = 50% de la presentación (3 en clase, 3 con visita)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "core304-part", "ramo": "core304", "nombre": "Participación", "peso": 37.5, "detalle": "3 notas parciales = 50% de la presentación", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "core304-exam", "ramo": "core304", "nombre": "Examen", "peso": 25, "es_examen": 1, "detalle": "Análisis de obras no vistas en el curso", "nota_min": "", "prom_directo": ""}, {"id": "mgt105-p1", "ramo": "mgt105", "nombre": "Prueba 1", "peso": 30, "detalle": "", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt105-p2", "ramo": "mgt105", "nombre": "Prueba 2", "peso": 30, "detalle": "Nota mínima 3,0 para aprobar el ramo", "nota_min": 3.0, "es_examen": 0, "prom_directo": ""}, {"id": "mgt105-cont", "ramo": "mgt105", "nombre": "Controles", "peso": 20, "detalle": "Agrega cada control a medida que los avisen", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt105-trab", "ramo": "mgt105", "nombre": "Trabajos en clases", "peso": 20, "detalle": "Actividades y casos en clase (sin recuperación)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt300-cont", "ramo": "mgt300", "nombre": "Controles de lectura", "peso": 15, "detalle": "20% de la presentación · 3 controles sorpresa (1 por unidad)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt300-pres", "ramo": "mgt300", "nombre": "Presentaciones grupales", "peso": 30, "detalle": "40% de la presentación", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt300-prue", "ramo": "mgt300", "nombre": "Pruebas de análisis", "peso": 30, "detalle": "40% de la presentación · 3 pruebas (fin de cada unidad)", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt300-exam", "ramo": "mgt300", "nombre": "Examen", "peso": 25, "es_examen": 1, "detalle": "Solo si no te eximes (presentación < 5,0)", "nota_min": "", "prom_directo": ""}, {"id": "mgt350-prue", "ramo": "mgt350", "nombre": "Pruebas", "peso": 60, "detalle": "Promedio de 2 pruebas teóricas", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt350-cont", "ramo": "mgt350", "nombre": "Controles", "peso": 30, "detalle": "Promedio de 3 controles", "es_examen": 0, "nota_min": "", "prom_directo": ""}, {"id": "mgt350-act", "ramo": "mgt350", "nombre": "Actividades en clases", "peso": 10, "detalle": "Puedes anotar el promedio directo cuando lo publiquen", "es_examen": 0, "nota_min": "", "prom_directo": ""}], "Evaluaciones": [{"id": "core301-e01", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 1 — Aristóteles", "cuando": "slot", "slot": 2, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e02", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 2 — Sto. Tomás", "cuando": "slot", "slot": 6, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e03", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 3 — Kant (Fundamentación)", "cuando": "slot", "slot": 12, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e04", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 4 — Kant (Metafísica)", "cuando": "slot", "slot": 15, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e05", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 5 — Bentham", "cuando": "slot", "slot": 20, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e06", "ramo": "core301", "comp": "core301-cont", "nombre": "Control 6 — Mill", "cuando": "slot", "slot": 23, "fecha": "", "info": "Al inicio de la clase, 20–25 min, sin apuntes", "nota": ""}, {"id": "core301-e07", "ramo": "core301", "comp": "core301-trab", "nombre": "Trabajo escrito 1 — ética de las virtudes", "cuando": "slot", "slot": 10, "fecha": "", "info": "Se redacta en clase (2–3 planas), sin textos ni apuntes", "nota": ""}, {"id": "core301-e08", "ramo": "core301", "comp": "core301-trab", "nombre": "Trabajo escrito 2 — ética deontológica", "cuando": "slot", "slot": 18, "fecha": "", "info": "Se redacta en clase (2–3 planas), sin textos ni apuntes", "nota": ""}, {"id": "core301-e09", "ramo": "core301", "comp": "core301-trab", "nombre": "Trabajo escrito 3 — ética utilitarista", "cuando": "slot", "slot": 26, "fecha": "", "info": "Se redacta en clase (2–3 planas), sin textos ni apuntes", "nota": ""}, {"id": "core301-e10", "ramo": "core301", "comp": "core301-part", "nombre": "Participación parcial 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "Cubre clases 1–11 · la publica el profesor", "nota": ""}, {"id": "core301-e11", "ramo": "core301", "comp": "core301-part", "nombre": "Participación parcial 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "Cubre clases 12–20 · la publica el profesor", "nota": ""}, {"id": "core301-e12", "ramo": "core301", "comp": "core301-part", "nombre": "Participación parcial 3", "cuando": "tbd", "slot": "", "fecha": "", "info": "Cubre clases 21–30 · la publica el profesor", "nota": ""}, {"id": "core301-e13", "ramo": "core301", "comp": "core301-exam", "nombre": "Examen oral", "cuando": "tbd", "slot": "", "fecha": "", "info": "Semana de exámenes — fecha la fija Pregrado", "nota": ""}, {"id": "core304-e01", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 1", "cuando": "slot", "slot": 5, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e02", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 2", "cuando": "slot", "slot": 10, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e03", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 3", "cuando": "slot", "slot": 15, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e04", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 4", "cuando": "slot", "slot": 20, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e05", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 5", "cuando": "slot", "slot": 24, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e06", "ramo": "core304", "comp": "core304-trab", "nombre": "Trabajo de análisis 6", "cuando": "slot", "slot": 29, "fecha": "", "info": "3 son en clase y 3 con visita a museo/exposición (foto frente a la obra). Pauta 1 semana antes", "nota": ""}, {"id": "core304-e07", "ramo": "core304", "comp": "core304-part", "nombre": "Participación parcial 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "La publica el profesor junto al registro de asistencia", "nota": ""}, {"id": "core304-e08", "ramo": "core304", "comp": "core304-part", "nombre": "Participación parcial 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "La publica el profesor junto al registro de asistencia", "nota": ""}, {"id": "core304-e09", "ramo": "core304", "comp": "core304-part", "nombre": "Participación parcial 3", "cuando": "tbd", "slot": "", "fecha": "", "info": "La publica el profesor junto al registro de asistencia", "nota": ""}, {"id": "core304-e10", "ramo": "core304", "comp": "core304-exam", "nombre": "Examen", "cuando": "tbd", "slot": "", "fecha": "", "info": "Semana de exámenes — obras no vistas en el curso", "nota": ""}, {"id": "mgt105-e01", "ramo": "mgt105", "comp": "mgt105-p1", "nombre": "Prueba 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada — agrégala cuando la avisen", "nota": ""}, {"id": "mgt105-e02", "ramo": "mgt105", "comp": "mgt105-p2", "nombre": "Prueba 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "Nota mínima 3,0 · sin eximición", "nota": ""}, {"id": "mgt300-e01", "ramo": "mgt300", "comp": "mgt300-prue", "nombre": "Prueba 1 — Unidad 1", "cuando": "slot", "slot": 6, "fecha": "", "info": "Estimada según programa (sesión 11) — confírmala en clases", "nota": ""}, {"id": "mgt300-e02", "ramo": "mgt300", "comp": "mgt300-prue", "nombre": "Prueba 2 — Unidad 2", "cuando": "slot", "slot": 10, "fecha": "", "info": "Estimada según programa (sesión 20) — confírmala en clases", "nota": ""}, {"id": "mgt300-e03", "ramo": "mgt300", "comp": "mgt300-prue", "nombre": "Prueba 3 — Unidad 3", "cuando": "slot", "slot": 15, "fecha": "", "info": "Estimada según programa (sesión 30) — confírmala en clases", "nota": ""}, {"id": "mgt300-e04", "ramo": "mgt300", "comp": "mgt300-cont", "nombre": "Control sorpresa 1 — Unidad 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "Sin aviso: clase aleatoria de la unidad. Anota la nota cuando lo den", "nota": ""}, {"id": "mgt300-e05", "ramo": "mgt300", "comp": "mgt300-cont", "nombre": "Control sorpresa 2 — Unidad 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "Sin aviso: clase aleatoria de la unidad. Anota la nota cuando lo den", "nota": ""}, {"id": "mgt300-e06", "ramo": "mgt300", "comp": "mgt300-cont", "nombre": "Control sorpresa 3 — Unidad 3", "cuando": "tbd", "slot": "", "fecha": "", "info": "Sin aviso: clase aleatoria de la unidad. Anota la nota cuando lo den", "nota": ""}, {"id": "mgt300-e07", "ramo": "mgt300", "comp": "mgt300-pres", "nombre": "Presentación grupal", "cuando": "tbd", "slot": "", "fecha": "", "info": "Ponle fecha cuando asignen tu grupo y lectura", "nota": ""}, {"id": "mgt300-e08", "ramo": "mgt300", "comp": "mgt300-exam", "nombre": "Examen", "cuando": "tbd", "slot": "", "fecha": "", "info": "Solo si presentación < 5,0 · semana de exámenes", "nota": ""}, {"id": "mgt350-e01", "ramo": "mgt350", "comp": "mgt350-prue", "nombre": "Prueba 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada", "nota": ""}, {"id": "mgt350-e02", "ramo": "mgt350", "comp": "mgt350-prue", "nombre": "Prueba 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada", "nota": ""}, {"id": "mgt350-e03", "ramo": "mgt350", "comp": "mgt350-cont", "nombre": "Control 1", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada", "nota": ""}, {"id": "mgt350-e04", "ramo": "mgt350", "comp": "mgt350-cont", "nombre": "Control 2", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada", "nota": ""}, {"id": "mgt350-e05", "ramo": "mgt350", "comp": "mgt350-cont", "nombre": "Control 3", "cuando": "tbd", "slot": "", "fecha": "", "info": "Fecha aún no publicada", "nota": ""}], "Config": [{"id": "nombre_app", "valor": "Mis Ramos"}, {"id": "semestre", "valor": "2026-2"}, {"id": "inicio", "valor": "2026-08-03"}, {"id": "fin_clases", "valor": "2026-11-13"}, {"id": "feriados", "valor": "2026-08-15,2026-09-18,2026-09-19,2026-10-12,2026-10-31,2026-11-01,2026-12-08"}]};
+
+/* ============ almacenamiento seguro (funciona sin localStorage) ============ */
+const store = {
+  _m: {},
+  get(k){ try{ const v = localStorage.getItem("mr_"+k); return v==null? (k in this._m? this._m[k] : null) : JSON.parse(v); }catch(e){ return k in this._m? this._m[k] : null; } },
+  set(k,v){ this._m[k]=v; try{ localStorage.setItem("mr_"+k, JSON.stringify(v)); }catch(e){} },
+  del(k){ delete this._m[k]; try{ localStorage.removeItem("mr_"+k); }catch(e){} }
+};
+
+/* ============ utilidades ============ */
+const $  = s => document.querySelector(s);
+const h  = s => String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const p2 = n => String(n).padStart(2,"0");
+const uid = p => p + "-x" + Date.now().toString(36) + Math.floor(Math.random()*1e4).toString(36);
+const clon = o => JSON.parse(JSON.stringify(o));
+const DIAS  = ["dom","lun","mar","mié","jue","vie","sáb"];
+const DIASL = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const MES   = ["ene","feb","mar","abr","may","jun","jul","ago","sept","oct","nov","dic"];
+const MESL  = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+function hoyISO(){ const d=new Date(); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
+function deISO(iso){ const [a,m,d]=iso.split("-").map(Number); return new Date(a,m-1,d); }
+function fF(iso){ if(!iso) return ""; const d=deISO(iso); return DIAS[d.getDay()]+" "+d.getDate()+" "+MES[d.getMonth()]; }
+function fFL(iso){ const d=deISO(iso); return DIASL[d.getDay()]+" "+d.getDate()+" de "+MESL[d.getMonth()]; }
+function diffDias(iso){ return Math.round((deISO(iso) - deISO(hoyISO()))/864e5); }
+function relFecha(iso){
+  const d=diffDias(iso);
+  if(d===0) return "HOY"; if(d===1) return "MAÑANA"; if(d===-1)return "ayer";
+  if(d>1 && d<7) return "este "+DIAS[deISO(iso).getDay()];
+  return fF(iso);
+}
+function fNota(n){ return n==null||n===""? "—" : (Math.round(+n*10)/10).toFixed(1).replace(".",","); }
+function parseNota(t){
+  if(t==null) return null;
+  t=String(t).trim().replace(",",".");
+  if(t==="") return "";
+  const v=parseFloat(t);
+  if(isNaN(v)||v<1||v>7) return null;
+  return Math.round(v*10)/10;
+}
+function claseTerminada(f){
+  const ahora=new Date();
+  const hoy=hoyISO();
+  if(f.fecha<hoy) return true;
+  if(f.fecha>hoy) return false;
+  const [hh,mm]=String(f.fin||"23:59").split(":").map(Number);
+  return (ahora.getHours()*60+ahora.getMinutes()) >= hh*60+mm;
+}
+
+/* colores: par claro/oscuro de la paleta validada */
+const PALETA = [
+  ["#2a78d6","#3987e5"],["#eb6834","#d95926"],["#1baf7a","#199e70"],["#eda100","#c98500"],
+  ["#e87ba4","#d55181"],["#008300","#008300"],["#4a3aa7","#9085e9"],["#e34948","#e66767"]
+];
+function colorVars(hex){
+  const par = PALETA.find(p=>p[0].toLowerCase()===String(hex||"").toLowerCase());
+  const oscuro = par? par[1] : (hex||"#2a78d6");
+  return `--c:${matchMedia("(prefers-color-scheme: dark)").matches? oscuro : (hex||"#2a78d6")}`;
+}
+
+/* ================================================================
+   DATOS + SINCRONIZACIÓN
+   ================================================================ */
+let DB = null;
+let COLA = store.get("cola") || [];
+let sincronizando = false;
+
+function cfg(k){ const r=(DB.Config||[]).find(x=>x.id===k); return r? r.valor : ""; }
+function feriados(){ return String(cfg("feriados")||"").split(",").filter(Boolean); }
+
+function aplicarLocal(cambio){
+  const t = DB[cambio.tabla] || (DB[cambio.tabla]=[]);
+  (cambio.rows||[]).forEach(obj=>{
+    const ex = t.find(r=>String(r.id)===String(obj.id));
+    if(ex) Object.assign(ex,obj); else t.push(clon(obj));
+  });
+  (cambio.borrar||[]).forEach(id=>{
+    const i=t.findIndex(r=>String(r.id)===String(id));
+    if(i>=0) t.splice(i,1);
+  });
+}
+
+function guardar(...cambios){
+  cambios.forEach(c=>aplicarLocal(c));
+  if(!DEMO){
+    COLA.push(...cambios);
+    store.set("cola",COLA); store.set("cache",DB);
+    sincronizar();
+  }
+  render();
+}
+
+async function sincronizar(){
+  if(sincronizando || !COLA.length || DEMO) return;
+  sincronizando=true; pintarSync();
+  const lote = COLA.slice();
+  try{
+    const r = await fetch(CONFIG.URL_PLANILLA, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({clave: store.get("clave"), cambios: lote})
+    });
+    const j = await r.json();
+    if(j.ok){ COLA = COLA.slice(lote.length); store.set("cola",COLA); }
+    else if(j.error==="clave"){ store.del("clave"); pantallaClave("La clave cambió — vuelve a entrar"); }
+    else toast("No se pudo guardar: "+j.error);
+  }catch(e){ /* sin conexión: queda en cola */ }
+  sincronizando=false; pintarSync();
+  if(COLA.length && navigator.onLine!==false) setTimeout(sincronizar, 30000);
+}
+
+async function cargar(fondo){
+  if(DEMO){ DB = clon(DATOS_DEMO); arrancar(); return; }
+  const clave = store.get("clave");
+  if(!clave){ pantallaClave(); return; }
+  if(!fondo) pantallaCarga();
+  try{
+    const r = await fetch(CONFIG.URL_PLANILLA + "?clave=" + encodeURIComponent(clave) + "&action=all");
+    const j = await r.json();
+    if(!j.ok){
+      if(j.error==="clave"){ store.del("clave"); pantallaClave("Clave incorrecta"); }
+      else pantallaError("Error de la planilla: "+j.error);
+      return;
+    }
+    DB = j.datos;
+    COLA.forEach(c=>aplicarLocal(c));      // re-aplica lo pendiente de guardar
+    store.set("cache",DB);
+    arrancar(); sincronizar();
+  }catch(e){
+    const c = store.get("cache");
+    if(c){ DB=c; arrancar(); toast("Sin conexión — mostrando lo último guardado"); }
+    else pantallaError("No pude conectar con tu planilla. Revisa tu internet y la URL en CONFIG.");
+  }
+}
+
+/* ================================================================
+   LÓGICA DE RAMOS
+   ================================================================ */
+const esActivo = r => String(r.activo)!=="0";
+function ramos(){ return (DB.Ramos||[]).filter(esActivo).sort((a,b)=>(+a.orden||99)-(+b.orden||99)); }
+function ramo(id){ return (DB.Ramos||[]).find(r=>r.id===id); }
+function fechasRamo(id){ return (DB.Fechas||[]).filter(f=>f.ramo===id).sort((a,b)=>(a.fecha+a.ini).localeCompare(b.fecha+b.ini)); }
+function activas(id){ return fechasRamo(id).filter(f=>f.estado!=="suspendida"); }
+function conNumero(id){ return activas(id).map((f,i)=>Object.assign({},f,{n:i+1})); }
+function numDe(id,fila){ const a=activas(id); const i=a.findIndex(x=>x.id===fila.id); return i<0? null : i+1; }
+function slotFila(id,n){ const a=conNumero(id); return a[n-1]||null; }
+function progDe(id,n){ return (DB.Programa||[]).find(p=>p.ramo===id && +p.n===+n); }
+function compsDe(id){ return (DB.Componentes||[]).filter(c=>c.ramo===id); }
+function evalsDe(id){ return (DB.Evaluaciones||[]).filter(e=>e.ramo===id); }
+
+function fechaEval(ev){
+  if(ev.cuando==="fecha" && ev.fecha) return {iso:ev.fecha, auto:false};
+  if(ev.cuando==="slot" && ev.slot!=="" && ev.slot!=null){
+    const s=slotFila(ev.ramo, +ev.slot);
+    if(s) return {iso:s.fecha, auto:true, n:+ev.slot};
+  }
+  return null;
+}
+
+/* -------- asistencia -------- */
+function asistencia(id){
+  const r = ramo(id);
+  const a = conNumero(id);
+  const pasadas = a.filter(claseTerminada);
+  const fT = a.filter(f=>f.estado==="falte").length;
+  const jT = a.filter(f=>f.estado==="justificada").length;
+  const fP = pasadas.filter(f=>f.estado==="falte").length;
+  const jP = pasadas.filter(f=>f.estado==="justificada").length;
+  const denom = pasadas.length - jP;
+  const pct = denom>0 ? (denom-fP)/denom*100 : 100;
+  const out = {pct, realizadas:pasadas.length, total:a.length, faltas:fT, just:jT, min:null};
+  if(r && r.asist_min!=="" && r.asist_min!=null){
+    const min = +r.asist_min;
+    const maxF = Math.floor((a.length - jT) * (1-min/100) + 1e-9);
+    out.min=min; out.maxF=maxF; out.rest=maxF-fT;
+  }
+  return out;
+}
+
+/* -------- notas -------- */
+function notaComp(c){
+  if(c.prom_directo!=="" && c.prom_directo!=null) return {nota:+c.prom_directo, directa:true};
+  const its = (DB.Evaluaciones||[]).filter(e=>e.comp===c.id && e.nota!=="" && e.nota!=null);
+  if(!its.length) return {nota:null};
+  return {nota: its.reduce((s,e)=>s+ +e.nota,0)/its.length, n:its.length};
+}
+function resumenNotas(id){
+  const comps = compsDe(id);
+  const noEx  = comps.filter(c=>+c.es_examen!==1);
+  const exC   = comps.find(c=>+c.es_examen===1);
+  let wEval=0, wnEval=0;
+  noEx.forEach(c=>{ const {nota}=notaComp(c); if(nota!=null){ wEval+=+c.peso; wnEval+=+c.peso*nota; } });
+  const wPres = noEx.reduce((s,c)=>s+ +c.peso,0);          // 75 ó 100
+  const parcial = wEval>0 ? wnEval/wEval : null;           // promedio de lo evaluado
+  const notaEx  = exC ? notaComp(exC).nota : null;
+  const out = {parcial, wEval, wPres, exC, notaEx, comps};
+  if(parcial!=null && exC){
+    out.necesitaExamen = (4.0 - parcial*(wPres/100)) / (+exC.peso/100);
+  } else if(parcial!=null && !exC && wEval<100){
+    out.necesitaResto = (400 - wnEval) / (100 - wEval);
+  }
+  if(parcial!=null && wEval>=wPres && !exC) out.final = parcial;
+  if(parcial!=null && wEval>=wPres && exC && notaEx!=null)
+    out.final = (wnEval + +exC.peso*notaEx)/100;
+  // umbral numérico de eximición, si existe (ej: "≥ 5,0")
+  const r = ramo(id);
+  const m = String(r&&r.eximicion||"").match(/≥\s*(\d)[.,](\d)/);
+  if(m) out.eximUmbral = +(m[1]+"."+m[2]);
+  return out;
+}
+
+/* -------- próximas evaluaciones -------- */
+function proximasEvals(dias){
+  const hoy=hoyISO(); const lista=[];
+  ramos().forEach(r=>{
+    evalsDe(r.id).forEach(ev=>{
+      const f=fechaEval(ev);
+      if(f && f.iso>=hoy && (dias==null || diffDias(f.iso)<=dias) && (ev.nota===""||ev.nota==null))
+        lista.push({ev, ramo:r, iso:f.iso, auto:f.auto, n:f.n});
+    });
+  });
+  return lista.sort((a,b)=>a.iso.localeCompare(b.iso));
+}
+function sinFecha(){
+  const lista=[];
+  ramos().forEach(r=>{
+    evalsDe(r.id).forEach(ev=>{
+      if(!fechaEval(ev) && (ev.nota===""||ev.nota==null)) lista.push({ev, ramo:r});
+    });
+  });
+  return lista;
+}
+function clasesDelDia(iso){
+  const lista=[];
+  ramos().forEach(r=>{
+    fechasRamo(r.id).forEach(f=>{ if(f.fecha===iso) lista.push({f, ramo:r, n:numDe(r.id,f)}); });
+  });
+  return lista.sort((a,b)=>String(a.f.ini).localeCompare(String(b.f.ini)));
+}
+</script>
+<script>
+/* ================================================================
+   NAVEGACIÓN + RENDER
+   ================================================================ */
+let RUTA = {v:"hoy"};
+function nav(r){ RUTA=r; render(); window.scrollTo(0,0); }
+
+const ICONOS = {
+  hoy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9h13v-9"/><path d="M10 19v-5h4v5"/></svg>',
+  ramos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 18.2A2.3 2.3 0 0 1 6.3 16H20"/><path d="M8 7.5h8"/></svg>',
+  cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  ajustes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M4.2 12H2M22 12h-2.2M5.1 5.1l1.7 1.7M17.2 17.2l1.7 1.7M18.9 5.1l-1.7 1.7M6.8 17.2l-1.7 1.7"/></svg>'
+};
+
+function pintarTabs(){
+  const T=[["hoy","Hoy"],["ramos","Ramos"],["cal","Calendario"],["ajustes","Ajustes"]];
+  $("#tabs").innerHTML = T.map(([k,t])=>
+    `<button class="tab ${RUTA.v===k||((RUTA.v==="ramo")&&k==="ramos")?"on":""}" onclick='nav({v:"${k}"})'>${ICONOS[k]}${t}</button>`).join("");
+}
+
+function pintarSync(){
+  const el=$("#syncpill"); if(!el) return;
+  if(DEMO){ el.className="pill warn"; el.textContent="modo prueba"; el.onclick=null; return; }
+  if(sincronizando){ el.className="pill"; el.textContent="guardando…"; }
+  else if(COLA.length){ el.className="pill warn"; el.textContent="⚠︎ "+COLA.length+" por guardar"; el.onclick=()=>sincronizar(); }
+  else { el.className="pill"; el.textContent="✓ guardado"; el.onclick=null; }
+}
+
+function render(){
+  if(!DB) return;
+  pintarTabs();
+  const v=RUTA.v;
+  $("#app").innerHTML =
+    v==="hoy"? vHoy() : v==="ramos"? vRamos() : v==="ramo"? vRamo() : v==="cal"? vCal() : vAjustes();
+  pintarSync();
+}
+
+function cab(titulo, sub, back){
+  return `<header class="top"><div class="in">
+    ${back?`<button class="back" onclick='${back}'>‹ Atrás</button>`:""}
+    <h1>${titulo}${sub?`<span class="sub">${sub}</span>`:""}</h1>
+    <button class="pill" id="syncpill"></button>
+  </div></header>`;
+}
+
+/* ================================================================
+   VISTA: HOY
+   ================================================================ */
+function vHoy(){
+  const hoy=hoyISO();
+  let out = cab(h(cfg("nombre_app")||CONFIG.NOMBRE_APP), fFL(hoy));
+  if(DEMO) out+=`<div class="demo-banner">Modo de prueba — los cambios no se guardan. Conecta tu planilla siguiendo la guía.</div>`;
+
+  // alertas de asistencia
+  ramos().forEach(r=>{
+    const a=asistencia(r.id);
+    if(a.min!=null && a.rest<=1){
+      const crit=a.rest<=0;
+      out+=`<div class="card" style="${colorVars(r.color)}"><div class="row">
+        <span class="badge ${crit?"crit":"warn"}">${crit?"✕":"⚠︎"}</span>
+        <div class="grow"><div class="t1">${r.emoji} ${h(r.nombre)}</div>
+        <div class="t2">${crit? (a.rest<0?"Estás bajo el mínimo de asistencia ("+a.min+"%)":"No puedes faltar más (mínimo "+a.min+"%)") : "Te queda solo 1 falta disponible"}</div></div>
+        <button class="btn mini" onclick='nav({v:"ramo",id:"${r.id}",tab:"asist"})'>Ver</button></div></div>`;
+    }
+  });
+
+  if(feriados().includes(hoy)) out+=`<div class="card"><div class="t1">🎉 Hoy es feriado</div><div class="t2">No tienes clases.</div></div>`;
+
+  // clases de hoy
+  const cls=clasesDelDia(hoy);
+  out+=`<div class="sec">Clases de hoy</div>`;
+  if(!cls.length) out+=`<div class="card t2">No tienes clases hoy 😌</div>`;
+  else out+=`<div class="card"><div class="list">`+cls.map(c=>filaClaseHoy(c)).join("")+`</div></div>`;
+
+  // qué llevar / próxima clase
+  const prox = proximoDiaConClases();
+  if(prox && prox.iso!==hoy){
+    out+=`<div class="sec">Próximas clases · ${relFecha(prox.iso)}</div><div class="card"><div class="list">`+
+      prox.lista.map(c=>{
+        const p=c.n? progDe(c.ramo.id,c.n):null;
+        return `<div class="row" style="${colorVars(c.ramo.color)}">
+          <span class="dot"></span>
+          <div class="grow">
+            <div class="t1">${c.ramo.emoji} ${h(c.ramo.nombre)} <span class="t3 tnum">${c.f.ini}</span>
+              ${p&&p.eval?` <span class="badge ev">📌 ${h(p.eval)}</span>`:""}</div>
+            ${p&&p.tema?`<div class="t2">${h(p.tema)}</div>`:""}
+            ${p&&p.material?`<div class="t2" style="margin-top:2px">${h(p.material)}</div>`:""}
+          </div></div>`;
+      }).join("")+`</div></div>`;
+  }
+
+  // próximas evaluaciones
+  const evs=proximasEvals(14);
+  out+=`<div class="sec">Evaluaciones · próximos 14 días</div>`;
+  if(!evs.length) out+=`<div class="card t2">Nada en 2 semanas ✅ &nbsp;<span class="t3">(revisa "por definir" en el calendario)</span></div>`;
+  else out+=`<div class="card"><div class="list">`+evs.map(x=>filaEvalProx(x)).join("")+`</div></div>`;
+
+  const sf=sinFecha().length;
+  if(sf) out+=`<button class="btn" style="margin-top:6px" onclick='nav({v:"cal"})'>📆 ${sf} evaluación${sf>1?"es":""} sin fecha — ver calendario</button>`;
+  return out;
+}
+
+function filaClaseHoy(c){
+  const p=c.n? progDe(c.ramo.id,c.n):null;
+  const susp=c.f.estado==="suspendida";
+  return `<div style="${colorVars(c.ramo.color)}">
+    <div class="row">
+      <span class="dot"></span>
+      <div class="grow">
+        <div class="t1 ${susp?"strike":""}">${c.ramo.emoji} ${h(c.ramo.nombre)} <span class="t3 tnum">${c.f.ini}–${c.f.fin}</span></div>
+        ${p&&p.tema?`<div class="t2 ${susp?"strike":""}">${h(p.tema)}</div>`:""}
+        ${p&&p.eval&&!susp?`<div style="margin-top:3px"><span class="badge ev">📌 ${h(p.eval)}</span></div>`:""}
+        ${p&&p.material&&!susp?`<div class="t2" style="margin-top:3px">${h(p.material)}</div>`:""}
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px;justify-content:flex-end">${susp?`<span class="badge">No hubo clase</span>`:seg3(c.f)}</div>
+  </div>`;
+}
+function proximoDiaConClases(){
+  const hoy=hoyISO();
+  for(let d=1; d<=10; d++){
+    const dt=deISO(hoy); dt.setDate(dt.getDate()+d);
+    const iso=dt.getFullYear()+"-"+p2(dt.getMonth()+1)+"-"+p2(dt.getDate());
+    const lista=clasesDelDia(iso).filter(c=>c.f.estado!=="suspendida");
+    if(lista.length) return {iso, lista};
+  }
+  return null;
+}
+function filaEvalProx(x){
+  return `<div class="row" style="${colorVars(x.ramo.color)}" onclick='nav({v:"ramo",id:"${x.ramo.id}",tab:"evals"})'>
+    <div style="width:64px;flex:none"><div class="t1" style="font-size:13px">${relFecha(x.iso)}</div>${relFecha(x.iso)!==fF(x.iso)?`<div class="t3 tnum">${fF(x.iso)}</div>`:""}</div>
+    <span class="dot"></span>
+    <div class="grow"><div class="t1 ell">${h(x.ev.nombre)}</div>
+      <div class="t3">${x.ramo.emoji} ${h(x.ramo.nombre)}${x.auto?` · clase ${x.n} <span class="badge">auto</span>`:""}</div></div>
+    <span class="t3">›</span></div>`;
+}
+function seg3(f){
+  const e=f.estado||"";
+  return `<div class="seg3">
+    <button class="${e===""?"on a":""}" onclick='setEstado("${f.id}","")'>✓ Asistí</button>
+    <button class="${e==="falte"?"on f":""}" onclick='setEstado("${f.id}","falte")'>✕ Falté</button>
+    <button class="${e==="justificada"?"on j":""}" onclick='setEstado("${f.id}","justificada")'>Justif.</button>
+  </div>`;
+}
+function setEstado(fid, estado){ guardar({tabla:"Fechas", rows:[{id:fid, estado}]}); }
+
+/* ================================================================
+   VISTA: RAMOS
+   ================================================================ */
+function vRamos(){
+  let out = cab("Ramos","Semestre "+h(cfg("semestre")||""));
+  ramos().forEach(r=>{
+    const a=asistencia(r.id), n=resumenNotas(r.id);
+    const evs=proximasEvals(null).filter(x=>x.ramo.id===r.id);
+    let asisTxt, asisCls="";
+    if(a.min!=null){
+      asisCls = a.rest<=0?"crit":(a.rest<=2?"warn":"good");
+      asisTxt = `${Math.round(a.pct)}% · puedes faltar ${Math.max(a.rest,0)} más`;
+      if(a.rest<0) asisTxt=`${Math.round(a.pct)}% · bajo el mínimo ${a.min}%`;
+    } else asisTxt = `libre · ${a.faltas} falta${a.faltas===1?"":"s"}`;
+    out+=`<div class="card" style="${colorVars(r.color)}" onclick='nav({v:"ramo",id:"${r.id}",tab:"asist"})'>
+      <div class="row">
+        <span style="font-size:26px">${r.emoji}</span>
+        <div class="grow">
+          <div class="t1 ell">${h(r.nombre)}</div>
+          <div class="t3">${h(r.sigla)}-${h(r.seccion)} · ${h(r.horario_txt||"")}</div>
+        </div>
+        ${n.parcial!=null?`<span class="badge" style="font-size:14px">${fNota(n.parcial)}</span>`:""}
+      </div>
+      <div class="bar" style="margin:11px 0 7px"><i style="width:${Math.min(a.pct,100)}%"></i>${a.min!=null?`<b class="min" style="left:${a.min}%"></b>`:""}</div>
+      <div class="row">
+        <span class="badge ${asisCls}">${a.min!=null?(a.rest<=0?"✕":a.rest<=2?"⚠︎":"✓"):"·"} asistencia ${asisTxt}</span>
+        <div class="grow"></div>
+        <span class="t3">${evs.length?`próx: ${relFecha(evs[0].iso)}`:"sin evals con fecha"}</span>
+      </div>
+    </div>`;
+  });
+  out+=`<button class="btn" style="margin-top:8px" onclick="mAgregarRamo()">＋ Agregar ramo</button>`;
+  return out;
+}
+
+/* ================================================================
+   VISTA: RAMO (detalle)
+   ================================================================ */
+function vRamo(){
+  const r=ramo(RUTA.id); if(!r) { RUTA={v:"ramos"}; return vRamos(); }
+  const tab=RUTA.tab||"asist";
+  let out = cab(h(r.nombre),"", `nav({v:"ramos"})`);
+  out+=`<div class="ramohead" style="${colorVars(r.color)}">
+    <div class="row"><span class="em">${r.emoji}</span>
+      <div class="grow"><h2>${h(r.nombre)}</h2>
+      <div class="t2">${h(r.profesor)} · ${h(r.sigla)}-${h(r.seccion)}</div>
+      <div class="t2">${h(r.horario_txt||"")}</div></div></div></div>`;
+  out+=`<div class="seg">`+[["asist","Asistencia"],["evals","Notas"],["clases","Clases"],["info","Info"]].map(([k,t])=>
+    `<button class="${tab===k?"on":""}" onclick='nav({v:"ramo",id:"${r.id}",tab:"${k}"})'>${t}</button>`).join("")+`</div>`;
+  out+= tab==="asist"? tAsist(r) : tab==="evals"? tEvals(r) : tab==="clases"? tClases(r) : tInfo(r);
+  return out;
+}
+
+/* ---- pestaña asistencia ---- */
+function tAsist(r){
+  const a=asistencia(r.id);
+  const cls = a.min==null? "" : a.rest<=0? "c" : a.rest<=2? "w" : "g";
+  const circ=2*Math.PI*36;
+  let out=`<div class="card" style="${colorVars(r.color)}">
+    <div class="row" style="gap:16px">
+      <div class="ringwrap">
+        <svg width="84" height="84" viewBox="0 0 84 84">
+          <circle cx="42" cy="42" r="36" fill="none" stroke="var(--wash)" stroke-width="9"/>
+          <circle cx="42" cy="42" r="36" fill="none" stroke="${a.min==null?"var(--c)":cls==="g"?"var(--good)":cls==="w"?"var(--warn)":"var(--crit)"}"
+            stroke-width="9" stroke-linecap="round" stroke-dasharray="${(a.pct/100*circ).toFixed(1)} ${circ.toFixed(1)}"/>
+        </svg>
+        <div class="pct"><span class="tnum">${Math.round(a.pct)}%</span><small>ASISTENCIA</small></div>
+      </div>
+      <div class="grow">
+        ${a.min!=null? `
+          <div class="t1">Mínimo ${a.min}% para ${a.min>=80?"no reprobar":"aprobar"}</div>
+          <div class="t2" style="margin-top:3px">Puedes faltar <b>${Math.max(a.rest,0)}</b> ${a.rest===1?"clase":"clases"} más
+            <span class="t3">(máx. ${a.maxF} injustificadas en ${a.total-a.just} clases)</span></div>
+          ${a.rest<0?`<div style="margin-top:6px"><span class="badge crit">✕ Bajo el mínimo — según el programa, se reprueba por inasistencia</span></div>`:""}
+        ` : `<div class="t1">Este ramo no exige asistencia</div><div class="t2" style="margin-top:3px">Igual queda tu registro: ${a.faltas} falta${a.faltas===1?"":"s"}</div>`}
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="v tnum">${a.realizadas} / ${a.total}</div><div class="l">clases realizadas</div></div>
+      <div class="kpi"><div class="v tnum">${a.faltas}${a.maxF!=null?` <small style="font-size:13px;color:var(--muted)">de ${a.maxF}</small>`:""}</div><div class="l">faltas (injustificadas)</div></div>
+      <div class="kpi"><div class="v tnum">${a.just}</div><div class="l">justificadas (no cuentan)</div></div>
+      <div class="kpi"><div class="v tnum">${a.total-a.realizadas}</div><div class="l">clases que quedan</div></div>
+    </div>
+  </div>`;
+  const pasadas=conNumero(r.id).filter(claseTerminada).reverse();
+  out+=`<div class="sec">Marca tus faltas</div>`;
+  if(!pasadas.length) out+=`<div class="card t2">Aún no hay clases realizadas.</div>`;
+  else out+=`<div class="card"><div class="list">`+pasadas.map(f=>`
+    <div class="row">
+      <div class="grow"><div class="t1" style="font-size:14.5px">Clase ${f.n} · ${relFecha(f.fecha)}</div><div class="t3 tnum">${fF(f.fecha)} · ${f.ini}</div></div>
+      ${seg3(f)}
+    </div>`).join("")+`</div></div>`;
+  out+=`<div class="hint">Las faltas <b>justificadas</b> (con certificado en Pregrado) no entran al cálculo del %. ¿No hubo clase un día? Márcala como suspendida en la pestaña <b>Clases</b> y toda la numeración se corre sola.</div>`;
+  return out;
+}
+
+/* ---- pestaña notas / evaluaciones ---- */
+function tEvals(r){
+  const R=resumenNotas(r.id);
+  let out=`<div class="card" style="${colorVars(r.color)}">`;
+  if(R.parcial==null){
+    out+=`<div class="t1">Aún sin notas</div><div class="t2">Cuando tengas la primera, anótala abajo — o escribe directo el promedio de un ítem.</div>`;
+  } else {
+    out+=`<div class="row"><div class="grow">
+      <div class="hero tnum">${fNota(R.final!=null?R.final:R.parcial)}</div>
+      <div class="t2">${R.final!=null? "nota final del ramo" : `promedio de lo evaluado <span class="t3">(${Math.round(R.wEval)}% de ${Math.round(R.wPres)}%${R.exC?" de presentación":""})</span>`}</div>
+    </div></div>`;
+    if(R.exC){
+      const exTxt = r.eximicion? `Eximición: ${h(r.eximicion)}` : "";
+      const cumple = R.eximUmbral!=null && R.parcial>=R.eximUmbral;
+      out+=`<div style="margin-top:10px">`;
+      if(exTxt) out+=`<div class="t2">${cumple?`<span class="badge good">✓ vas cumpliendo el umbral</span> `:""}${exTxt}</div>`;
+      if(R.necesitaExamen!=null && R.notaEx==null){
+        const x=R.necesitaExamen;
+        out+=`<div class="t2" style="margin-top:4px">${x<=1?"Manteniendo tu promedio, para el 4,0 final te basta un <b>1,0</b> en el examen 🎉":x>7?"⚠︎ Manteniendo tu promedio no alcanzas el 4,0 solo con el examen — hay que subir la presentación":`Manteniendo tu promedio, para el 4,0 final necesitas <b>${fNota(x)}</b> en el examen`}</div>`;
+      }
+      out+=`</div>`;
+    } else if(R.necesitaResto!=null){
+      const x=R.necesitaResto;
+      out+=`<div class="t2" style="margin-top:8px">${x<=1?"Para el 4,0 te basta un <b>1,0</b> en lo que falta 🎉":x>7?"⚠︎ Con lo que falta no alcanzas el 4,0":`Para el 4,0 necesitas promedio <b>${fNota(x)}</b> en el ${100-Math.round(R.wEval)}% restante`}</div>`;
+    }
+  }
+  out+=`</div>`;
+
+  R.comps.forEach(c=>{
+    const nc=notaComp(c);
+    const its=(DB.Evaluaciones||[]).filter(e=>e.comp===c.id);
+    out+=`<div class="card" style="${colorVars(r.color)}">
+      <div class="row">
+        <div class="grow"><span class="t1">${h(c.nombre)}</span> <span class="badge">${(+c.peso).toString().replace(".",",")}%</span>
+        ${+c.es_examen===1?`<span class="badge">examen</span>`:""}</div>
+        <span class="badge ${nc.nota!=null && c.nota_min!=="" && nc.nota< +c.nota_min ?"crit":""}" style="font-size:14px">${fNota(nc.nota)}${nc.directa?" ✎":""}</span>
+      </div>
+      ${c.detalle?`<div class="t3" style="margin-top:2px">${h(c.detalle)}</div>`:""}
+      ${c.nota_min!==""&&c.nota_min!=null?`<div class="t3">Nota mínima: ${fNota(c.nota_min)}</div>`:""}
+      <div class="list" style="margin-top:6px">`;
+    its.forEach(e=>{
+      const f=fechaEval(e);
+      out+=`<div class="row">
+        <button class="grow" style="text-align:left" onclick='mFechaEval("${e.id}")'>
+          <div class="t1" style="font-size:14.5px">${h(e.nombre)}</div>
+          <div class="t3">${f? `${relFecha(f.iso)}${relFecha(f.iso)!==fF(f.iso)?` · ${fF(f.iso)}`:""}${f.auto?` · clase ${f.n} (auto)`:""}` : `📆 por definir — toca para ponerle fecha`}</div>
+        </button>
+        <input class="notain ${e.nota===""?"vacia":""}" inputmode="decimal" placeholder="—" value="${e.nota===""?"":fNota(e.nota)}"
+          onchange='onNota(this,"${e.id}")'>
+      </div>`;
+    });
+    out+=`</div>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button class="btn mini" onclick='mAgregarItem("${c.id}")'>＋ nota</button>
+        <div class="grow"></div>
+        <span class="t3">promedio directo</span>
+        <input class="notain ${c.prom_directo===""?"vacia":""}" inputmode="decimal" placeholder="—"
+          value="${c.prom_directo===""?"":fNota(c.prom_directo)}" onchange='onPromDirecto(this,"${c.id}")'>
+      </div>
+      ${c.prom_directo!==""?`<div class="hint">✎ Estás usando el promedio directo: reemplaza al promedio de las notas de arriba.</div>`:""}
+    </div>`;
+  });
+  return out;
+}
+
+function onNota(inp, evId){
+  const ev=(DB.Evaluaciones||[]).find(e=>e.id===evId);
+  const v=parseNota(inp.value);
+  if(v===null){ toast("La nota va de 1,0 a 7,0"); inp.value= ev&&ev.nota!==""? fNota(ev.nota):""; return; }
+  guardar({tabla:"Evaluaciones", rows:[{id:evId, nota:v===""?"":v}]});
+}
+function onPromDirecto(inp, compId){
+  const c=(DB.Componentes||[]).find(x=>x.id===compId);
+  const v=parseNota(inp.value);
+  if(v===null){ toast("La nota va de 1,0 a 7,0"); inp.value= c&&c.prom_directo!==""? fNota(c.prom_directo):""; return; }
+  guardar({tabla:"Componentes", rows:[{id:compId, prom_directo:v===""?"":v}]});
+}
+
+/* ---- pestaña clases ---- */
+function tClases(r){
+  const todas=fechasRamo(r.id);
+  const hoy=hoyISO();
+  let out=`<div class="card" style="${colorVars(r.color)}"><div class="list">`;
+  todas.forEach(f=>{
+    const susp=f.estado==="suspendida";
+    const n=susp? null : numDe(r.id,f);
+    const p=n? progDe(r.id,n):null;
+    const pasada=claseTerminada(f);
+    out+=`<div class="row" style="${pasada&&!susp?"opacity:.62":""}">
+      <div style="width:30px;flex:none;text-align:center" class="t1 tnum">${susp?"—":n}</div>
+      <div class="grow ${susp?"strike":""}">
+        <div class="t1" style="font-size:14.5px">${fF(f.fecha)} <span class="t3 tnum">${f.ini}</span>
+          ${f.fecha===hoy?`<span class="badge good">HOY</span>`:""}
+          ${p&&p.eval?` <span class="badge ev">📌 ${h(p.eval)}</span>`:""}
+          ${f.estado==="falte"?`<span class="badge crit">falté</span>`:f.estado==="justificada"?`<span class="badge warn">justif.</span>`:""}</div>
+        ${p&&p.tema?`<div class="t2 ell">${h(p.tema)}</div>`:""}
+        ${p&&p.material&&!pasada?`<div class="t3 ell">${h(p.material)}</div>`:""}
+      </div>
+      <button class="iconbtn" onclick='mClase("${f.id}")'>⋯</button>
+    </div>`;
+  });
+  out+=`</div></div>
+  <button class="btn" onclick='mAgregarClase("${r.id}")'>＋ Agregar clase (recuperativa / extra)</button>
+  <div class="hint">Toca ⋯ para marcar una clase como <b>suspendida</b> (feriado, paro, no hubo). La numeración y las fechas de controles se recalculan solas.</div>`;
+  return out;
+}
+
+/* ---- pestaña info ---- */
+function tInfo(r){
+  const a=asistencia(r.id);
+  let out=`<div class="card" style="${colorVars(r.color)}"><div class="list">
+    <div class="row"><div class="grow t2">Profesor</div><div class="t1">${h(r.profesor)}</div></div>
+    <div class="row"><div class="grow t2">Curso</div><div class="t1">${h(r.sigla)}-${h(r.seccion)}</div></div>
+    <div class="row"><div class="grow t2">Horario</div><div class="t1" style="text-align:right">${h(r.horario_txt||"")}</div></div>
+    <div class="row"><div class="grow t2">Asistencia mínima</div><div class="t1">${a.min!=null? a.min+"%":"no exige"}</div></div>
+    ${r.eximicion?`<div class="row"><div class="grow t2">Eximición</div><div class="t1" style="text-align:right;font-size:14px">${h(r.eximicion)}</div></div>`:""}
+  </div></div>`;
+  if(r.reglas) out+=`<div class="sec">Reglas del programa</div><div class="card t2" style="white-space:pre-line">${h(r.reglas)}</div>`;
+  out+=`<button class="btn danger" style="margin-top:14px" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Sus datos quedan guardados en la planilla y puedes restaurarlo en Ajustes.", ()=>{ guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}); nav({v:"ramos"}); })'>Eliminar ramo</button>`;
+  return out;
+}
+</script>
+<script>
+/* ================================================================
+   VISTA: CALENDARIO
+   ================================================================ */
+function vCal(){
+  if(!RUTA.mes){ RUTA.mes=hoyISO().slice(0,7); RUTA.sel=hoyISO(); }
+  const [anio,mes]=RUTA.mes.split("-").map(Number);
+  let out = cab("Calendario","toca un día para ver el detalle");
+
+  // mapa: día → puntos
+  const puntos={};
+  proximasEvalsTodas().forEach(x=>{ (puntos[x.iso]=puntos[x.iso]||[]).push(x.ramo.color); });
+
+  const prim=new Date(anio,mes-1,1);
+  const inicio=(prim.getDay()+6)%7;                 // lunes=0
+  const nDias=new Date(anio,mes,0).getDate();
+  out+=`<div class="card">
+    <div class="calnav">
+      <button class="iconbtn" onclick='moverMes(-1)'>‹</button>
+      <h3>${MESL[mes-1]} ${anio}</h3>
+      <button class="iconbtn" onclick='moverMes(1)'>›</button>
+    </div>
+    <div class="calgrid">`+["lu","ma","mi","ju","vi","sa","do"].map(d=>`<div class="wd">${d}</div>`).join("");
+  for(let i=0;i<inicio;i++) out+=`<div></div>`;
+  const hoy=hoyISO(), fers=feriados();
+  for(let d=1;d<=nDias;d++){
+    const iso=anio+"-"+p2(mes)+"-"+p2(d);
+    const ps=(puntos[iso]||[]).slice(0,3);
+    out+=`<button class="cday ${iso===hoy?"today":""} ${iso===RUTA.sel?"sel":""} ${fers.includes(iso)?"fer":""}" onclick='selDia("${iso}")'>
+      <span class="tnum">${d}</span>
+      <span class="cdots">${ps.map(c=>`<i style="${colorVars(c)}"></i>`).join("")}</span></button>`;
+  }
+  out+=`</div></div>`;
+
+  // detalle del día seleccionado
+  if(RUTA.sel){
+    const iso=RUTA.sel;
+    out+=`<div class="sec">${fFL(iso)}</div><div class="card"><div class="list">`;
+    let algo=false;
+    if(fers.includes(iso)){ out+=`<div class="t2">🎉 Feriado — no hay clases</div>`; algo=true; }
+    proximasEvalsTodas().filter(x=>x.iso===iso).forEach(x=>{
+      algo=true;
+      out+=`<div class="row" style="${colorVars(x.ramo.color)}" onclick='nav({v:"ramo",id:"${x.ramo.id}",tab:"evals"})'>
+        <span class="dot"></span><div class="grow"><div class="t1">📌 ${h(x.ev.nombre)}</div>
+        <div class="t3">${x.ramo.emoji} ${h(x.ramo.nombre)}${x.auto?` · clase ${x.n} (auto)`:""}</div></div><span class="t3">›</span></div>`;
+    });
+    clasesDelDia(iso).forEach(c=>{
+      algo=true;
+      const p=c.n? progDe(c.ramo.id,c.n):null;
+      out+=`<div class="row" style="${colorVars(c.ramo.color)}">
+        <span class="dot"></span>
+        <div class="grow ${c.f.estado==="suspendida"?"strike":""}"><div class="t2"><b class="tnum">${c.f.ini}</b> · ${c.ramo.emoji} ${h(c.ramo.nombre)}${c.n?` <span class="t3">(clase ${c.n})</span>`:""}</div>
+        ${p&&p.tema?`<div class="t3 ell">${h(p.tema)}</div>`:""}</div>
+        ${c.f.estado==="suspendida"?`<span class="badge">suspendida</span>`:""}</div>`;
+    });
+    if(!algo) out+=`<div class="t2">Sin clases ni evaluaciones.</div>`;
+    out+=`</div></div>`;
+  }
+
+  // todas las próximas + sin fecha
+  const prox=proximasEvals(null);
+  out+=`<div class="sec">Todas las próximas</div>`;
+  if(!prox.length) out+=`<div class="card t2">No hay evaluaciones con fecha próxima.</div>`;
+  else out+=`<div class="card"><div class="list">`+prox.map(x=>filaEvalProx(x)).join("")+`</div></div>`;
+
+  const sf=sinFecha();
+  if(sf.length){
+    out+=`<div class="sec">Por definir (sin fecha)</div><div class="card"><div class="list">`+sf.map(x=>`
+      <div class="row" style="${colorVars(x.ramo.color)}">
+        <span class="dot"></span>
+        <div class="grow"><div class="t1 ell" style="font-size:14.5px">${h(x.ev.nombre)}</div>
+        <div class="t3">${x.ramo.emoji} ${h(x.ramo.nombre)}${x.ev.info?` · ${h(x.ev.info)}`:""}</div></div>
+        <button class="btn mini" onclick='mFechaEval("${x.ev.id}")'>📆 fecha</button>
+      </div>`).join("")+`</div></div>`;
+  }
+  out+=`<button class="fab" onclick="mAgregarEval()">＋</button>`;
+  return out;
+}
+function proximasEvalsTodas(){
+  const lista=[];
+  ramos().forEach(r=>{ evalsDe(r.id).forEach(ev=>{ const f=fechaEval(ev); if(f) lista.push({ev,ramo:r,iso:f.iso,auto:f.auto,n:f.n}); }); });
+  return lista;
+}
+function moverMes(d){
+  let [a,m]=RUTA.mes.split("-").map(Number); m+=d;
+  if(m<1){m=12;a--;} if(m>12){m=1;a++;}
+  RUTA.mes=a+"-"+p2(m); render();
+}
+function selDia(iso){ RUTA.sel=iso; render(); }
+
+/* ================================================================
+   VISTA: AJUSTES
+   ================================================================ */
+function vAjustes(){
+  let out = cab("Ajustes","");
+  out+=`<div class="sec">Conexión</div><div class="card">`;
+  if(DEMO){
+    out+=`<div class="t1">⚠️ Modo de prueba</div>
+    <div class="t2" style="margin-top:4px">La app aún no está conectada a tu planilla de Google: los cambios <b>no se guardan</b>. Sigue la guía de instalación y pega la URL de tu planilla en el <b>CONFIG</b> del archivo index.html.</div>`;
+  } else {
+    out+=`<div class="t1">✓ Conectado a tu planilla</div>
+    <div class="t3 ell" style="margin-top:2px">${h(CONFIG.URL_PLANILLA)}</div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <button class="btn mini" onclick="cargar()">↻ Recargar datos</button>
+      <button class="btn mini" onclick='mConfirm("¿Salir? Tendrás que escribir la clave de nuevo.",()=>{store.del("clave");location.reload();})'>Cambiar clave</button>
+    </div>
+    ${COLA.length?`<div class="hint">⚠︎ Hay ${COLA.length} cambio(s) sin guardar en la planilla. <b onclick="sincronizar()" style="color:var(--acc)">Reintentar ahora</b></div>`:""}`;
+  }
+  out+=`</div>`;
+
+  out+=`<div class="sec">Ramos</div><div class="card"><div class="list">`;
+  (DB.Ramos||[]).sort((a,b)=>(+a.orden||99)-(+b.orden||99)).forEach(r=>{
+    const act=esActivo(r);
+    out+=`<div class="row" style="${colorVars(r.color)};${act?"":"opacity:.5"}">
+      <span class="dot"></span>
+      <div class="grow"><div class="t1">${r.emoji} ${h(r.nombre)}</div><div class="t3">${h(r.sigla)}-${h(r.seccion)}${act?"":" · eliminado"}</div></div>
+      ${act? `<button class="btn mini danger" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Podrás restaurarlo después.",()=>guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}))'>Eliminar</button>`
+           : `<button class="btn mini" onclick='guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:1}]})'>Restaurar</button>`}
+    </div>`;
+  });
+  out+=`</div><button class="btn" style="margin-top:12px" onclick="mAgregarRamo()">＋ Agregar ramo</button></div>`;
+
+  out+=`<div class="sec">Acerca de</div><div class="card t3">
+    ${h(cfg("nombre_app")||CONFIG.NOMBRE_APP)} · semestre ${h(cfg("semestre"))} · hecha con los programas oficiales de tus cursos y tu horario.
+    Los datos viven en tu planilla de Google (pestañas Ramos, Fechas, Programa, Componentes, Evaluaciones).
+    Feriados considerados: ${feriados().map(fF).join(" · ")||"—"}.</div>`;
+  return out;
+}
+
+/* ================================================================
+   MODALES
+   ================================================================ */
+function abrirModal(html){ $("#modal").innerHTML=`<div class="ov" onclick="if(event.target===this)cerrarModal()"><div class="sheet"><div class="grab"></div>${html}</div></div>`; }
+function cerrarModal(){ $("#modal").innerHTML=""; }
+function mConfirm(txt, fn){
+  window.__conf=fn;
+  abrirModal(`<h3>¿Seguro?</h3><div class="t2">${txt}</div>
+    <div class="frow" style="margin-top:16px">
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn danger" onclick="cerrarModal();window.__conf()">Sí, seguro</button>
+    </div>`);
+}
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("on");
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"), 2600);
+}
+
+/* ---- fecha de una evaluación ---- */
+function mFechaEval(evId){
+  const ev=(DB.Evaluaciones||[]).find(e=>e.id===evId);
+  const f=fechaEval(ev);
+  abrirModal(`<h3>${h(ev.nombre)}</h3>
+    ${ev.info?`<div class="t2">${h(ev.info)}</div>`:""}
+    <div class="fld"><label>Nombre</label><input id="m_nom" class="inp" value="${h(ev.nombre)}"></div>
+    <div class="fld"><label>Fecha</label><input id="m_fecha" type="date" class="inp" value="${f?f.iso:""}"></div>
+    ${ev.slot!==""&&ev.slot!=null?`<div class="hint">Esta evaluación está ligada a la <b>clase ${ev.slot}</b> del programa${f&&f.auto?` (hoy eso cae el ${fF(f.iso)})`:""}. Si eliges una fecha a mano, deja de moverse sola.</div>`:""}
+    <div class="frow" style="margin-top:14px">
+      <button class="btn" onclick='fijarFecha("${evId}","tbd")'>Sin fecha</button>
+      ${ev.slot!==""&&ev.slot!=null?`<button class="btn" onclick='fijarFecha("${evId}","slot")'>Auto (clase ${ev.slot})</button>`:""}
+      <button class="btn primary" onclick='fijarFecha("${evId}","fecha")'>Guardar</button>
+    </div>
+    <button class="btn danger" style="margin-top:10px" onclick='mConfirm("¿Eliminar esta evaluación?",()=>{cerrarModal();guardar({tabla:"Evaluaciones",borrar:["${evId}"]})})'>Eliminar evaluación</button>`);
+}
+function fijarFecha(evId, modo){
+  const nom=$("#m_nom").value.trim();
+  const fila={id:evId};
+  if(nom) fila.nombre=nom;
+  if(modo==="fecha"){
+    const v=$("#m_fecha").value;
+    if(!v){ toast("Elige una fecha o toca Sin fecha"); return; }
+    fila.cuando="fecha"; fila.fecha=v;
+  } else if(modo==="slot"){ fila.cuando="slot"; fila.fecha=""; }
+  else { fila.cuando="tbd"; fila.fecha=""; }
+  cerrarModal(); guardar({tabla:"Evaluaciones", rows:[fila]});
+}
+
+/* ---- agregar ítem de nota a un componente ---- */
+function singularItem(nombre,n){
+  const b=String(nombre).split(" ")[0];
+  const s=b.length>4 && /es$/.test(b)? b.slice(0,-2) : (b.length>3 && /s$/.test(b)? b.slice(0,-1) : b);
+  return s+" "+n;
+}
+function mAgregarItem(compId){
+  const c=(DB.Componentes||[]).find(x=>x.id===compId);
+  const n=(DB.Evaluaciones||[]).filter(e=>e.comp===compId).length+1;
+  abrirModal(`<h3>＋ ${h(c.nombre)}</h3>
+    <div class="fld"><label>Nombre</label><input id="m_nom" class="inp" value="${h(singularItem(c.nombre,n))}"></div>
+    <div class="frow">
+      <div class="fld"><label>Fecha (opcional)</label><input id="m_fecha" type="date" class="inp"></div>
+      <div class="fld"><label>Nota (opcional)</label><input id="m_nota" class="inp" inputmode="decimal" placeholder="ej: 5,5"></div>
+    </div>
+    <button class="btn primary" onclick='crearItem("${compId}")'>Agregar</button>`);
+}
+function crearItem(compId){
+  const c=(DB.Componentes||[]).find(x=>x.id===compId);
+  const nom=$("#m_nom").value.trim()||("Ítem");
+  const f=$("#m_fecha").value;
+  const nota=parseNota($("#m_nota").value);
+  if(nota===null){ toast("La nota va de 1,0 a 7,0"); return; }
+  cerrarModal();
+  guardar({tabla:"Evaluaciones", rows:[{id:uid(c.ramo+"-e"), ramo:c.ramo, comp:compId, nombre:nom,
+    cuando:f?"fecha":"tbd", slot:"", fecha:f||"", info:"", nota:nota===""?"":nota}]});
+}
+
+/* ---- menú de una clase (suspender / eliminar) ---- */
+function mClase(fid){
+  const f=(DB.Fechas||[]).find(x=>x.id===fid);
+  const r=ramo(f.ramo);
+  const susp=f.estado==="suspendida";
+  const extra=String(f.id).includes("-x");
+  abrirModal(`<h3>${h(r.nombre)} · ${fF(f.fecha)}</h3>
+    <div class="t2 tnum">${f.ini}–${f.fin}</div>
+    <div style="margin-top:14px;display:grid;gap:8px">
+      ${!susp?`<button class="btn" onclick='cerrarModal();setEstado("${fid}","suspendida")'>🚫 No hubo clase (suspendida)</button>`
+             :`<button class="btn" onclick='cerrarModal();setEstado("${fid}","")'>↩️ Sí hubo clase (restaurar)</button>`}
+      ${!susp?`<div class="seg3" style="justify-content:center">
+        <button class="${(f.estado||"")===""?"on a":""}" onclick='cerrarModal();setEstado("${fid}","")'>✓ Asistí</button>
+        <button class="${f.estado==="falte"?"on f":""}" onclick='cerrarModal();setEstado("${fid}","falte")'>✕ Falté</button>
+        <button class="${f.estado==="justificada"?"on j":""}" onclick='cerrarModal();setEstado("${fid}","justificada")'>Justif.</button>
+      </div>`:""}
+      ${extra?`<button class="btn danger" onclick='mConfirm("¿Eliminar esta clase agregada?",()=>{cerrarModal();guardar({tabla:"Fechas",borrar:["${fid}"]})})'>Eliminar esta clase</button>`:""}
+    </div>
+    <div class="hint">Al suspender, la numeración de las clases siguientes y las evaluaciones "auto" se recalculan solas.</div>`);
+}
+
+/* ---- agregar clase extra ---- */
+function mAgregarClase(ramoId){
+  abrirModal(`<h3>＋ Clase extra</h3>
+    <div class="fld"><label>Fecha</label><input id="m_fecha" type="date" class="inp" value="${hoyISO()}"></div>
+    <div class="frow">
+      <div class="fld"><label>Desde</label><input id="m_ini" type="time" class="inp" value="10:00"></div>
+      <div class="fld"><label>Hasta</label><input id="m_fin" type="time" class="inp" value="11:10"></div>
+    </div>
+    <button class="btn primary" onclick='crearClase("${ramoId}")'>Agregar</button>`);
+}
+function crearClase(ramoId){
+  const f=$("#m_fecha").value; if(!f){ toast("Falta la fecha"); return; }
+  cerrarModal();
+  guardar({tabla:"Fechas", rows:[{id:uid(ramoId+"-f"), ramo:ramoId, fecha:f, ini:$("#m_ini").value||"", fin:$("#m_fin").value||"", estado:""}]});
+}
+
+/* ---- agregar evaluación (desde calendario) ---- */
+function mAgregarEval(){
+  const rs=ramos();
+  abrirModal(`<h3>＋ Evaluación</h3>
+    <div class="fld"><label>Ramo</label><select id="m_ramo" class="inp" onchange="llenarComps()">${rs.map(r=>`<option value="${r.id}">${r.emoji} ${h(r.nombre)}</option>`).join("")}</select></div>
+    <div class="fld"><label>Tipo (componente de nota)</label><select id="m_comp" class="inp"></select></div>
+    <div class="fld"><label>Nombre</label><input id="m_nom" class="inp" placeholder="ej: Control 3, Entrega informe…"></div>
+    <div class="fld"><label>Fecha (deja vacío si aún no se sabe)</label><input id="m_fecha" type="date" class="inp"></div>
+    <button class="btn primary" onclick="crearEval()">Agregar</button>`);
+  llenarComps();
+}
+function llenarComps(){
+  const rid=$("#m_ramo").value;
+  $("#m_comp").innerHTML = compsDe(rid).map(c=>`<option value="${c.id}">${h(c.nombre)} (${(+c.peso).toString().replace(".",",")}%)</option>`).join("");
+}
+function crearEval(){
+  const rid=$("#m_ramo").value, cid=$("#m_comp").value, nom=$("#m_nom").value.trim(), f=$("#m_fecha").value;
+  if(!nom){ toast("Ponle un nombre"); return; }
+  cerrarModal();
+  guardar({tabla:"Evaluaciones", rows:[{id:uid(rid+"-e"), ramo:rid, comp:cid, nombre:nom, cuando:f?"fecha":"tbd", slot:"", fecha:f||"", info:"", nota:""}]});
+  toast(f? "Agregada para el "+fF(f) : "Agregada como por definir");
+}
+
+/* ---- agregar ramo ---- */
+function mAgregarRamo(){
+  window.__hor=[{d:1,i:"10:00",f:"11:10"}];
+  window.__comps=[{nombre:"Pruebas",peso:60},{nombre:"Controles",peso:40}];
+  window.__color=PALETA[5][0];
+  abrirModal(`<h3>＋ Agregar ramo</h3>
+    <div class="fld"><label>Nombre</label><input id="r_nom" class="inp" placeholder="ej: Inglés 5"></div>
+    <div class="frow">
+      <div class="fld"><label>Emoji</label><input id="r_emo" class="inp" value="📘"></div>
+      <div class="fld"><label>Sigla-sección</label><input id="r_sig" class="inp" placeholder="ej: ENG201-4"></div>
+    </div>
+    <div class="fld"><label>Profesor (opcional)</label><input id="r_prof" class="inp"></div>
+    <div class="fld"><label>Color</label><div class="sw" id="r_colores">${PALETA.map((p,i)=>`<button style="background:${p[0]}" class="${p[0]===window.__color?"on":""}" onclick="elegirColor(${i},this)"></button>`).join("")}</div></div>
+    <div class="fld"><label>Asistencia mínima</label><select id="r_min" class="inp">
+      <option value="">No exige</option><option>60</option><option>70</option><option value="75">75</option><option value="80" selected>80</option><option>85</option>
+    </select></div>
+    <div class="fld"><label>Horario semanal</label><div id="r_hor"></div>
+      <button class="btn mini" style="margin-top:6px" onclick="window.__hor.push({d:1,i:'10:00',f:'11:10'});pintarHorario()">＋ otro día</button></div>
+    <div class="frow">
+      <div class="fld"><label>Primera clase</label><input id="r_desde" type="date" class="inp" value="${hoyISO()}"></div>
+      <div class="fld"><label>Última clase</label><input id="r_hasta" type="date" class="inp" value="${h(cfg("fin_clases")||hoyISO())}"></div>
+    </div>
+    <div class="fld"><label>Componentes de nota (deben sumar 100%)</label><div id="r_comps"></div>
+      <button class="btn mini" style="margin-top:6px" onclick="window.__comps.push({nombre:'',peso:0});pintarComps()">＋ otro componente</button>
+      <div class="hint" id="r_suma"></div></div>
+    <button class="btn primary" onclick="crearRamo()">Crear ramo</button>`);
+  pintarHorario(); pintarComps();
+}
+function elegirColor(i,btn){ window.__color=PALETA[i][0]; document.querySelectorAll("#r_colores button").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); }
+function pintarHorario(){
+  const DS=[["1","lunes"],["2","martes"],["3","miércoles"],["4","jueves"],["5","viernes"],["6","sábado"]];
+  $("#r_hor").innerHTML=window.__hor.map((hr,i)=>`<div class="frow" style="margin-bottom:6px">
+    <select class="inp" onchange="window.__hor[${i}].d=+this.value">${DS.map(([v,t])=>`<option value="${v}" ${+v===hr.d?"selected":""}>${t}</option>`).join("")}</select>
+    <input type="time" class="inp" value="${hr.i}" onchange="window.__hor[${i}].i=this.value">
+    <input type="time" class="inp" value="${hr.f}" onchange="window.__hor[${i}].f=this.value">
+    <button class="iconbtn" onclick="window.__hor.splice(${i},1);pintarHorario()">✕</button>
+  </div>`).join("");
+}
+function pintarComps(){
+  $("#r_comps").innerHTML=window.__comps.map((c,i)=>`<div class="frow" style="margin-bottom:6px">
+    <input class="inp" placeholder="nombre" value="${h(c.nombre)}" onchange="window.__comps[${i}].nombre=this.value">
+    <input class="inp" type="number" style="max-width:86px" placeholder="%" value="${c.peso||""}" onchange="window.__comps[${i}].peso=+this.value;pintarSuma()">
+    <button class="iconbtn" onclick="window.__comps.splice(${i},1);pintarComps()">✕</button>
+  </div>`).join("");
+  pintarSuma();
+}
+function pintarSuma(){
+  const s=window.__comps.reduce((a,c)=>a+(+c.peso||0),0);
+  const el=$("#r_suma"); if(el) el.innerHTML= s===100? "✓ suman 100%" : `⚠︎ van sumando <b>${s}%</b> (deben ser 100)`;
+}
+function crearRamo(){
+  const nom=$("#r_nom").value.trim(); if(!nom){ toast("Ponle nombre al ramo"); return; }
+  const hor=window.__hor.filter(x=>x.d&&x.i&&x.f);
+  if(!hor.length){ toast("Agrega al menos un día de clases"); return; }
+  const desde=$("#r_desde").value, hasta=$("#r_hasta").value;
+  if(!desde||!hasta||hasta<desde){ toast("Revisa las fechas de inicio y fin"); return; }
+  let comps=window.__comps.filter(c=>c.nombre.trim());
+  const suma=comps.reduce((a,c)=>a+(+c.peso||0),0);
+  if(comps.length && suma!==100){ toast("Los componentes deben sumar 100% (van "+suma+"%)"); return; }
+  if(!comps.length) comps=[{nombre:"Notas",peso:100}];
+
+  const id="ramo-"+Date.now().toString(36);
+  const sig=($("#r_sig").value.trim()||nom.toUpperCase().slice(0,6)).split("-");
+  const fers=feriados();
+  const fechas=[]; let d=deISO(desde); const fin=deISO(hasta); let k=0;
+  while(d<=fin && fechas.length<200){
+    const isoD=d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
+    const dow=d.getDay()===0?7:d.getDay();
+    hor.filter(x=>+x.d===dow).forEach(x=>{ if(!fers.includes(isoD)) fechas.push({id:id+"-f"+p2(++k), ramo:id, fecha:isoD, ini:x.i, fin:x.f, estado:""}); });
+    d.setDate(d.getDate()+1);
+  }
+  const DIA_TXT={1:"Lu",2:"Ma",3:"Mi",4:"Ju",5:"Vi",6:"Sa"};
+  cerrarModal();
+  guardar(
+    {tabla:"Ramos", rows:[{id, nombre:nom, sigla:sig[0]||"", seccion:sig[1]||"", profesor:$("#r_prof").value.trim(), emoji:$("#r_emo").value.trim()||"📘",
+      color:window.__color, asist_min:$("#r_min").value, orden:(DB.Ramos||[]).length+1,
+      horario_txt:hor.map(x=>`${DIA_TXT[x.d]} ${x.i}–${x.f}`).join(" · "), horario_json:JSON.stringify(hor), eximicion:"", reglas:"", activo:1}]},
+    {tabla:"Fechas", rows:fechas},
+    {tabla:"Componentes", rows:comps.map((c,i)=>({id:id+"-c"+(i+1), ramo:id, nombre:c.nombre.trim(), peso:+c.peso, detalle:"", es_examen:0, nota_min:"", prom_directo:""}))}
+  );
+  nav({v:"ramo", id, tab:"asist"});
+  toast("Ramo creado con "+fechas.length+" clases");
+}
+
+/* ================================================================
+   PANTALLAS DE ENTRADA + ARRANQUE
+   ================================================================ */
+function pantallaCarga(){
+  $("#gate").innerHTML=`<div class="gate"><div class="box">
+    <div class="logo">🎓</div><h2>${h(CONFIG.NOMBRE_APP)}</h2><div class="spin"></div>
+    <div class="t3">Cargando tus ramos…</div></div></div>`;
+}
+function pantallaClave(msg){
+  $("#gate").innerHTML=`<div class="gate"><div class="box">
+    <div class="logo">🎓</div><h2>${h(CONFIG.NOMBRE_APP)}</h2>
+    <div class="t2" style="margin:6px 0 16px">${msg?h(msg):"Escribe tu clave para entrar"}</div>
+    <input id="g_clave" class="inp" type="password" placeholder="clave" style="text-align:center" onkeydown="if(event.key==='Enter')entrarClave()">
+    <button class="btn primary" style="margin-top:12px" onclick="entrarClave()">Entrar</button>
+  </div></div>`;
+  setTimeout(()=>{ const i=$("#g_clave"); if(i) i.focus(); },100);
+}
+function entrarClave(){
+  const v=$("#g_clave").value.trim();
+  if(!v){ return; }
+  store.set("clave", v);
+  cargar();
+}
+function pantallaError(msg){
+  $("#gate").innerHTML=`<div class="gate"><div class="box">
+    <div class="logo">🎓</div><h2>Ups</h2>
+    <div class="t2" style="margin:8px 0 16px">${h(msg)}</div>
+    <button class="btn primary" onclick="cargar()">Reintentar</button></div></div>`;
+}
+function arrancar(){
+  $("#gate").innerHTML="";
+  $("#tabbar").style.display="";
+  render();
+}
+
+window.addEventListener("online", ()=>sincronizar());
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && DB && !DEMO && !COLA.length) cargar(true); });
+try{ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ if(DB) render(); }); }catch(e){}
+cargar();
+</script>
+</body>
+</html>
