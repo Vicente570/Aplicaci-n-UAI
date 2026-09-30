@@ -201,7 +201,6 @@ h1,h2,h3{margin:0;font-weight:700}
    ================================================================ */
 const CONFIG = {
   URL_PLANILLA: "https://script.google.com/macros/s/AKfycbxFy7kJPTaD-BU36rfGMrR9nY1MTncvom6tiWulSeCwc81xWe13rdu5O3qOT-Hiwp8oUw/exec",        // ← pega aquí la URL /exec de tu Apps Script
-  CLAVE:        "cambia-esta-clave",        // ← escribe aquí tu CLAVE_APP del Apps Script (entre las comillas) y la app NO pedirá clave al entrar
   NOMBRE_APP:   "Mis Ramos",
   DURACION_CLASE: 70     // ← minutos que dura cada clase (1 h 10 min). La hora de término se calcula sola.
 };
@@ -279,7 +278,6 @@ let VERSION_SYNC = 0;   // sube cada vez que se guarda algo en la planilla
 let ERROR_SYNC = "";    // último motivo por el que no se pudo guardar
 
 function cfg(k){ const r=(DB.Config||[]).find(x=>x.id===k); return r? r.valor : ""; }
-function getClave(){ return CONFIG.CLAVE || store.get("clave") || ""; }
 function feriados(){ return String(cfg("feriados")||"").split(",").map(x=>x.trim()).filter(Boolean); }
 function esFeriado(iso){ return feriados().includes(iso); }
 function setFeriados(lista){
@@ -336,16 +334,13 @@ async function sincronizar(){
     const r = await fetch(CONFIG.URL_PLANILLA, {
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({clave: getClave(), cambios: lote})
+      body: JSON.stringify({clave: store.get("clave"), cambios: lote})
     });
     let j;
     try{ j = await r.json(); }
     catch(e){ err="La planilla respondió con una página de error en vez de datos. Revisa en Apps Script → Implementar → Gestionar implementaciones que la versión activa sea la última"; throw e; }
     if(j.ok){ COLA = COLA.slice(lote.length); store.set("cola",COLA); ok=true; VERSION_SYNC++; }
-    else if(j.error==="clave"){
-      if(CONFIG.CLAVE) err="La CLAVE escrita en el index.html no coincide con la CLAVE_APP del Apps Script";
-      else { err="La clave cambió — vuelve a entrar"; store.del("clave"); pantallaClave(err); }
-    }
+    else if(j.error==="clave"){ err="La clave cambió — vuelve a entrar"; store.del("clave"); pantallaClave(err); }
     else err="La planilla rechazó el cambio: "+j.error;
   }catch(e){ if(!err) err = navigator.onLine===false? "Sin internet: se guardará cuando vuelva la conexión" : "No pude comunicarme con la planilla (se reintentará sola)"; }
   if(err && err!==ERROR_SYNC) toast(err);
@@ -357,7 +352,7 @@ async function sincronizar(){
 
 async function cargar(fondo){
   if(DEMO){ DB = clon(DATOS_DEMO); arrancar(); return; }
-  const clave = getClave();
+  const clave = store.get("clave");
   if(!clave){ pantallaClave(); return; }
   if(!fondo) pantallaCarga();
   const v0 = VERSION_SYNC;
@@ -365,10 +360,7 @@ async function cargar(fondo){
     const r = await fetch(CONFIG.URL_PLANILLA + "?clave=" + encodeURIComponent(clave) + "&action=all");
     const j = await r.json();
     if(!j.ok){
-      if(j.error==="clave"){
-        if(CONFIG.CLAVE) pantallaError("La CLAVE escrita en el index.html no coincide con la CLAVE_APP del Apps Script. Revisa que sea exactamente igual (mayúsculas incluidas).");
-        else { store.del("clave"); pantallaClave("Clave incorrecta"); }
-      }
+      if(j.error==="clave"){ store.del("clave"); pantallaClave("Clave incorrecta"); }
       else pantallaError("Error de la planilla: "+j.error);
       return;
     }
@@ -965,7 +957,7 @@ function vAjustes(){
     <div class="t3 ell" style="margin-top:2px">${h(CONFIG.URL_PLANILLA)}</div>
     <div class="row" style="margin-top:12px;gap:8px">
       <button class="btn mini" onclick="cargar()">↻ Recargar datos</button>
-      ${CONFIG.CLAVE?"":`<button class="btn mini" onclick='mConfirm("¿Salir? Tendrás que escribir la clave de nuevo.",()=>{store.del("clave");location.reload();})'>Cambiar clave</button>`}
+      <button class="btn mini" onclick='mConfirm("¿Salir? Tendrás que escribir la clave de nuevo.",()=>{store.del("clave");location.reload();})'>Cambiar clave</button>
     </div>
     ${COLA.length?`<div class="hint">⚠︎ Hay ${COLA.length} cambio(s) sin guardar en la planilla${ERROR_SYNC?`: <b>${h(ERROR_SYNC)}</b>`:""}. <b onclick="sincronizar()" style="color:var(--acc);cursor:pointer">Reintentar ahora</b></div>`:""}`;
   }
