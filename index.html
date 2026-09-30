@@ -842,7 +842,8 @@ function tInfo(r){
     ${r.eximicion?`<div class="row"><div class="grow t2">Eximición</div><div class="t1" style="text-align:right;font-size:14px">${h(r.eximicion)}</div></div>`:""}
   </div></div>`;
   if(r.reglas) out+=`<div class="sec">Reglas del programa</div><div class="card t2" style="white-space:pre-line">${h(r.reglas)}</div>`;
-  out+=`<button class="btn danger" style="margin-top:14px" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Sus datos quedan guardados en la planilla y puedes restaurarlo en Ajustes.", ()=>{ guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}); nav({v:"ramos"}); })'>Eliminar ramo</button>`;
+  out+=`<button class="btn" style="margin-top:14px" onclick='mAgregarRamo("${r.id}")'>✏️ Editar ramo</button>`;
+  out+=`<button class="btn danger" style="margin-top:10px" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Sus datos quedan guardados en la planilla y puedes restaurarlo en Ajustes.", ()=>{ guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}); nav({v:"ramos"}); })'>Eliminar ramo</button>`;
   return out;
 }
 </script>
@@ -967,7 +968,8 @@ function vAjustes(){
     out+=`<div class="row" style="${colorVars(r.color)};${act?"":"opacity:.5"}">
       <span class="dot"></span>
       <div class="grow"><div class="t1">${r.emoji} ${h(r.nombre)}</div><div class="t3">${h(r.sigla)}-${h(r.seccion)}${act?"":" · eliminado"}</div></div>
-      ${act? `<button class="btn mini danger" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Podrás restaurarlo después.",()=>guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}))'>Eliminar</button>`
+      ${act? `<div style="display:flex;gap:6px;flex:none"><button class="btn mini" onclick='mAgregarRamo("${r.id}")'>Editar</button>
+             <button class="btn mini danger" onclick='mConfirm("¿Eliminar ${h(r.nombre)}? Podrás restaurarlo después.",()=>guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:0}]}))'>Eliminar</button></div>`
            : `<button class="btn mini" onclick='guardar({tabla:"Ramos",rows:[{id:"${r.id}",activo:1}]})'>Restaurar</button>`}
     </div>`;
   });
@@ -1170,32 +1172,65 @@ function crearEval(){
 }
 
 /* ---- agregar ramo ---- */
-function mAgregarRamo(){
-  window.__hor=[{d:1,i:"10:00"}];
-  window.__comps=[{nombre:"Pruebas",peso:60},{nombre:"Controles",peso:40}];
-  window.__color=PALETA[5][0];
-  abrirModal(`<h3>＋ Agregar ramo</h3>
-    <div class="fld"><label>Nombre</label><input id="r_nom" class="inp" placeholder="ej: Inglés 5"></div>
+function normHor(hor){ return hor.filter(x=>x.d&&x.i).map(x=>(+x.d)+"|"+x.i).sort().join(","); }
+function horarioDeRamo(r){
+  let hor=[];
+  try{ hor=JSON.parse(r.horario_json||"[]").map(x=>({d:+x.d, i:String(x.i)})).filter(x=>x.d&&x.i); }catch(e){}
+  if(!hor.length){   // sin horario guardado: lo deduzco de sus clases
+    const vistos={};
+    fechasRamo(r.id).filter(f=>!String(f.id).includes("-x")).forEach(f=>{
+      const d=deISO(f.fecha).getDay()||7, k=d+"|"+f.ini;
+      if(!vistos[k]){ vistos[k]=1; hor.push({d, i:String(f.ini)}); }
+    });
+  }
+  return hor.sort((a,b)=>a.d-b.d || a.i.localeCompare(b.i));
+}
+/* formulario de ramo: sin id = crear · con id = editar */
+function mAgregarRamo(editId){
+  const r = editId? ramo(editId) : null;
+  window.__edit = null;
+  let desde=hoyISO(), hasta=cfg("fin_clases")||hoyISO();
+  if(r){
+    const fs=fechasRamo(r.id).filter(f=>!String(f.id).includes("-x"));
+    window.__hor = horarioDeRamo(r); if(!window.__hor.length) window.__hor=[{d:1,i:"10:00"}];
+    window.__comps = compsDe(r.id).map(c=>({id:c.id, nombre:String(c.nombre), peso:+c.peso}));
+    window.__color = r.color || PALETA[5][0];
+    if(fs.length){ desde=fs[0].fecha; hasta=fs[fs.length-1].fecha; }
+    window.__edit = {id:r.id, hor0:normHor(window.__hor), desde0:desde, hasta0:hasta, comps0:window.__comps.map(c=>c.id), aviso:""};
+  } else {
+    window.__hor=[{d:1,i:"10:00"}];
+    window.__comps=[{nombre:"Pruebas",peso:60},{nombre:"Controles",peso:40}];
+    window.__color=PALETA[5][0];
+  }
+  const minAct = r? String(r.asist_min==null? "" : r.asist_min) : "80";
+  const MINS=["","60","70","75","80","85"]; if(!MINS.includes(minAct)) MINS.push(minAct);
+  const sigTxt = r? [r.sigla, r.seccion].filter(x=>x!==""&&x!=null).join("-") : "";
+  abrirModal(`<h3>${r? "✏️ Editar ramo" : "＋ Agregar ramo"}</h3>
+    <div class="fld"><label>Nombre</label><input id="r_nom" class="inp" placeholder="ej: Inglés 5" value="${r?h(r.nombre):""}"></div>
     <div class="frow">
-      <div class="fld"><label>Emoji</label><input id="r_emo" class="inp" value="📘"></div>
-      <div class="fld"><label>Sigla-sección</label><input id="r_sig" class="inp" placeholder="ej: ENG201-4"></div>
+      <div class="fld"><label>Emoji</label><input id="r_emo" class="inp" value="${r?h(r.emoji||"📘"):"📘"}"></div>
+      <div class="fld"><label>Sigla-sección</label><input id="r_sig" class="inp" placeholder="ej: ENG201-4" value="${h(sigTxt)}"></div>
     </div>
-    <div class="fld"><label>Profesor (opcional)</label><input id="r_prof" class="inp"></div>
-    <div class="fld"><label>Color</label><div class="sw" id="r_colores">${PALETA.map((p,i)=>`<button style="background:${p[0]}" class="${p[0]===window.__color?"on":""}" onclick="elegirColor(${i},this)"></button>`).join("")}</div></div>
+    <div class="fld"><label>Profesor (opcional)</label><input id="r_prof" class="inp" value="${r?h(r.profesor||""):""}"></div>
+    <div class="fld"><label>Color</label><div class="sw" id="r_colores">${PALETA.map((p,i)=>`<button style="background:${p[0]}" class="${p[0].toLowerCase()===String(window.__color).toLowerCase()?"on":""}" onclick="elegirColor(${i},this)"></button>`).join("")}</div></div>
     <div class="fld"><label>Asistencia mínima</label><select id="r_min" class="inp">
-      <option value="">No exige</option><option>60</option><option>70</option><option value="75">75</option><option value="80" selected>80</option><option>85</option>
+      ${MINS.map(v=>`<option value="${h(v)}" ${v===minAct?"selected":""}>${v===""?"No exige":h(v)+"%"}</option>`).join("")}
     </select></div>
+    <div class="frow">
+      <div class="fld"><label>Inicio de clases</label><input id="r_desde" type="date" class="inp" value="${h(desde)}"></div>
+      <div class="fld"><label>Fin de clases</label><input id="r_hasta" type="date" class="inp" value="${h(hasta)}"></div>
+    </div>
     <div class="fld"><label>Horario semanal · hora de inicio</label><div id="r_hor"></div>
       <button class="btn mini" style="margin-top:6px" onclick="window.__hor.push({d:1,i:'10:00'});pintarHorario()">＋ otro día</button>
       <div class="hint">Cada clase dura ${+CONFIG.DURACION_CLASE||70} min: el término se calcula solo. ¿Módulo doble? Agrega el mismo día otra vez con la hora del segundo módulo.</div></div>
-    <div class="frow">
-      <div class="fld"><label>Primera clase</label><input id="r_desde" type="date" class="inp" value="${hoyISO()}"></div>
-      <div class="fld"><label>Última clase</label><input id="r_hasta" type="date" class="inp" value="${h(cfg("fin_clases")||hoyISO())}"></div>
-    </div>
+    ${r?`<div class="fld"><label>Si cambias horario o fechas, aplicar desde</label><input id="r_aplicar" type="date" class="inp" value="${hoyISO()}">
+      <div class="hint">Las clases antes de esta fecha (y tus asistencias marcadas) no se tocan. Si el ramo quedó mal desde el principio, pon aquí la fecha de inicio de clases.</div></div>`:""}
     <div class="fld"><label>Componentes de nota (deben sumar 100%)</label><div id="r_comps"></div>
       <button class="btn mini" style="margin-top:6px" onclick="window.__comps.push({nombre:'',peso:0});pintarComps()">＋ otro componente</button>
       <div class="hint" id="r_suma"></div></div>
-    <button class="btn primary" onclick="crearRamo()">Crear ramo</button>`);
+    <div id="r_aviso"></div>
+    ${r? `<button class="btn primary" onclick='guardarEdicionRamo("${r.id}")'>Guardar cambios</button>`
+       : `<button class="btn primary" onclick="crearRamo()">Crear ramo</button>`}`);
   pintarHorario(); pintarComps();
 }
 function elegirColor(i,btn){ window.__color=PALETA[i][0]; document.querySelectorAll("#r_colores button").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); }
@@ -1255,6 +1290,81 @@ function crearRamo(){
   );
   nav({v:"ramo", id, tab:"asist"});
   toast("Ramo creado con "+fechas.filter(f=>!fers.includes(f.fecha)).length+" clases");
+}
+
+/* ---- editar ramo ---- */
+function generadorIds(base, tabla){
+  const usados=new Set((DB[tabla]||[]).map(x=>String(x.id))); let n=0;
+  return ()=>{ let id; do{ id=base+p2(++n); }while(usados.has(id)); usados.add(id); return id; };
+}
+function guardarEdicionRamo(id, confirmado){
+  const r=ramo(id), E=window.__edit; if(!r||!E) return;
+  // ⚠️ leer todo ANTES de tocar el modal
+  const nom=$("#r_nom").value.trim(); if(!nom){ toast("Ponle nombre al ramo"); return; }
+  const hor=window.__hor.filter(x=>x.d&&x.i).map(x=>({d:+x.d, i:x.i, f:finDe(x.i)})).sort((a,b)=>a.d-b.d || a.i.localeCompare(b.i));
+  if(!hor.length){ toast("Agrega al menos un día de clases"); return; }
+  const desde=$("#r_desde").value, hasta=$("#r_hasta").value;
+  if(!desde||!hasta||hasta<desde){ toast("Revisa las fechas de inicio y fin"); return; }
+  const aplicar=$("#r_aplicar").value||hoyISO();
+  const comps=window.__comps.filter(c=>String(c.nombre||"").trim());
+  if(!comps.length){ toast("Deja al menos un componente de nota"); return; }
+  const suma=comps.reduce((a,c)=>a+(+c.peso||0),0);
+  if(Math.abs(suma-100)>0.01){ toast("Los componentes deben sumar 100% (van "+suma+"%)"); return; }
+  const sig=($("#r_sig").value.trim()||nom.toUpperCase().slice(0,6)).split("-");
+  const prof=$("#r_prof").value.trim(), emo=$("#r_emo").value.trim()||"📘", amin=$("#r_min").value;
+  const DIA_TXT={1:"Lu",2:"Ma",3:"Mi",4:"Ju",5:"Vi",6:"Sa",7:"Do"};
+
+  const cambios=[{tabla:"Ramos", rows:[{id, nombre:nom, sigla:sig[0]||"", seccion:sig.slice(1).join("-"), profesor:prof, emoji:emo,
+    color:window.__color, asist_min:amin, horario_txt:hor.map(x=>`${DIA_TXT[x.d]} ${x.i}–${x.f}`).join(" · "), horario_json:JSON.stringify(hor)}]}];
+
+  // --- clases: solo si cambió el horario o las fechas ---
+  let nuevas=[], quitar=[], conMarca=0;
+  if(normHor(hor)!==E.hor0 || desde!==E.desde0 || hasta!==E.hasta0){
+    const desean={};
+    const d=deISO(desde>aplicar? desde : aplicar), fin=deISO(hasta); let guard=0;
+    while(d<=fin && guard++<400){
+      const iso=aISO(d), dow=d.getDay()||7;
+      hor.filter(x=>x.d===dow).forEach(x=>{ desean[iso+"|"+x.i]=x; });
+      d.setDate(d.getDate()+1);
+    }
+    fechasRamo(id).forEach(f=>{
+      if(f.fecha<aplicar || String(f.id).includes("-x")) return;   // antes de la fecha elegida o clase extra: no se toca
+      const key=f.fecha+"|"+f.ini;
+      if(desean[key]) delete desean[key];                           // ya existe: se conserva tal cual
+      else { quitar.push(f.id); if(f.estado) conMarca++; }
+    });
+    const nid=generadorIds(id+"-f","Fechas");
+    nuevas=Object.keys(desean).sort().map(key=>{ const [fecha,ini]=key.split("|"); return {id:nid(), ramo:id, fecha, ini, fin:finDe(ini), estado:""}; });
+    if(nuevas.length||quitar.length) cambios.push({tabla:"Fechas", rows:nuevas, borrar:quitar});
+  }
+
+  // --- componentes de nota ---
+  const quedan=comps.filter(c=>c.id).map(c=>c.id);
+  const compsQuitar=E.comps0.filter(cid=>!quedan.includes(cid));
+  const evsQuitar=(DB.Evaluaciones||[]).filter(e=>compsQuitar.includes(e.comp));
+  const notasPerdidas=evsQuitar.filter(e=>e.nota!==""&&e.nota!=null).length;
+  const cid=generadorIds(id+"-c","Componentes");
+  cambios.push({tabla:"Componentes", borrar:compsQuitar, rows:comps.map(c=> c.id
+    ? {id:c.id, nombre:String(c.nombre).trim(), peso:+c.peso}
+    : {id:cid(), ramo:id, nombre:String(c.nombre).trim(), peso:+c.peso, detalle:"", es_examen:0, nota_min:"", prom_directo:""})});
+  if(evsQuitar.length) cambios.push({tabla:"Evaluaciones", borrar:evsQuitar.map(e=>e.id)});
+
+  // --- avisar antes de borrar cosas ---
+  const avisos=[];
+  if(nuevas.length||quitar.length) avisos.push(`Clases desde el ${fF(desde>aplicar?desde:aplicar)}: se agregan <b>${nuevas.length}</b> y se quitan <b>${quitar.length}</b>${conMarca?` (<b>${conMarca}</b> con asistencia marcada)`:""}. La numeración y los controles "auto" se recalculan.`);
+  if(compsQuitar.length) avisos.push(`Se eliminan <b>${compsQuitar.length}</b> componente(s) de nota${evsQuitar.length?` junto con ${evsQuitar.length} evaluación(es)`:""}${notasPerdidas?` — <b>${notasPerdidas} nota(s) ya puestas se pierden</b>`:""}.`);
+  const txt=avisos.join("<br>");
+  if(txt && (!confirmado || txt!==E.aviso)){
+    E.aviso=txt;
+    $("#r_aviso").innerHTML=`<div class="card" style="margin:6px 0 10px"><div class="t2">⚠︎ ${txt}</div></div>`;
+    const b=document.querySelector(".sheet .btn.primary");
+    if(b){ b.textContent="Sí, guardar cambios"; b.setAttribute("onclick",`guardarEdicionRamo("${id}",true)`); }
+    $("#r_aviso").scrollIntoView({block:"center", behavior:"smooth"});
+    return;
+  }
+  cerrarModal();
+  guardar(...cambios);
+  toast("Ramo actualizado"+(nuevas.length||quitar.length? ` · ${nuevas.length} clases nuevas, ${quitar.length} quitadas` : ""));
 }
 
 /* ================================================================
