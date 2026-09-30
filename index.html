@@ -185,7 +185,7 @@ h1,h2,h3{margin:0;font-weight:700}
 .sw button.on{border-color:var(--ink)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));z-index:60;
   background:var(--ink);color:var(--bg);font-size:14px;font-weight:600;padding:10px 18px;border-radius:99px;
-  box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:88%;text-align:center;opacity:0;transition:opacity .25s}
+  box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:88%;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 
 /* pantalla clave / carga */
@@ -211,9 +211,10 @@ h1,h2,h3{margin:0;font-weight:700}
    CONFIGURACIÓN — lo único que se edita a mano
    ================================================================ */
 const CONFIG = {
-  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbxNhLTYgov-ypO2jSsZqs3jVKkx1vqfSEqMgo1ui98IVa2TvM7aN5TjtcPaIZ0GH0yYAQ/exec",        // ← pega aquí la URL /exec de tu Apps Script
-  CLAVE:        "Clave_para_aplicacion3477283",        // ← pon aquí tu misma clave del Apps Script y la app NO pedirá contraseña al entrar
-  NOMBRE_APP:   "UAI`nt"
+  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbwK09Ep5-9dsKMydJv4rGEVHcp0LstIrPFjkJPaq4uB8M1mP_UtCVKVCVoR6EGytXR8/exec",        // ← pega aquí la URL /exec de tu Apps Script
+  CLAVE:        "Rick",        // ← pon aquí tu misma clave del Apps Script y la app NO pedirá contraseña al entrar
+  NOMBRE_APP:   "UAI`nt",
+  DURACION_CLASE: 70     // ← minutos que dura cada clase (1 h 10 min). La hora de término se calcula sola.
 };
 
 const DEMO = !CONFIG.URL_PLANILLA;
@@ -238,7 +239,8 @@ const DIASL = ["domingo","lunes","martes","miércoles","jueves","viernes","sába
 const MES   = ["ene","feb","mar","abr","may","jun","jul","ago","sept","oct","nov","dic"];
 const MESL  = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
-function hoyISO(){ const d=new Date(); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
+function aISO(d){ return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
+function hoyISO(){ return aISO(new Date()); }
 function deISO(iso){ const [a,m,d]=iso.split("-").map(Number); return new Date(a,m-1,d); }
 function fF(iso){ if(!iso) return ""; const d=deISO(iso); return DIAS[d.getDay()]+" "+d.getDate()+" "+MES[d.getMonth()]; }
 function fFL(iso){ const d=deISO(iso); return DIASL[d.getDay()]+" "+d.getDate()+" de "+MESL[d.getMonth()]; }
@@ -301,9 +303,34 @@ function setTema(v){ store.set("tema",v); aplicarTema(); }
 let DB = null;
 let COLA = store.get("cola") || [];
 let sincronizando = false;
+let VERSION_SYNC = 0;   // sube cada vez que se guarda algo en la planilla
+let ERROR_SYNC = "";    // último motivo por el que no se pudo guardar
 
 function cfg(k){ const r=(DB.Config||[]).find(x=>x.id===k); return r? r.valor : ""; }
-function feriados(){ return String(cfg("feriados")||"").split(",").filter(Boolean); }
+function feriados(){ return String(cfg("feriados")||"").split(",").map(x=>x.trim()).filter(Boolean); }
+function esFeriado(iso){ return feriados().includes(iso); }
+function setFeriados(lista){
+  const u=[...new Set(lista)].filter(Boolean).sort();
+  guardar({tabla:"Config", rows:[{id:"feriados", valor:u.join(",")}]});
+}
+/* agrupa fechas seguidas: [["2026-09-21","2026-09-25"], ["2026-10-12","2026-10-12"], …] */
+function gruposFeriados(){
+  const fs=feriados().slice().sort(), out=[];
+  fs.forEach(iso=>{
+    const g=out[out.length-1];
+    if(g){ const d=deISO(g[1]); d.setDate(d.getDate()+1); if(aISO(d)===iso){ g[1]=iso; return; } }
+    out.push([iso,iso]);
+  });
+  return out;
+}
+function rangoISO(desde,hasta){ const out=[]; const d=deISO(desde), f=deISO(hasta); while(d<=f && out.length<120){ out.push(aISO(d)); d.setDate(d.getDate()+1); } return out; }
+function clasesEnFechas(isos){ const s=new Set(isos); return ramos().reduce((n,r)=>n+fechasRamo(r.id).filter(f=>s.has(f.fecha)).length,0); }
+/* hora de término = inicio + DURACION_CLASE */
+function finDe(ini){
+  if(!ini) return "";
+  const [hh,mm]=String(ini).split(":").map(Number); const t=hh*60+mm+(+CONFIG.DURACION_CLASE||70);
+  return p2(Math.floor(t/60)%24)+":"+p2(t%60);
+}
 function getClave(){ return CONFIG.CLAVE || store.get("clave") || ""; }
 
 /* ramos SIN mínimo pueden desactivar el registro de asistencia (guardado en Config) */
@@ -341,22 +368,28 @@ async function sincronizar(){
   if(sincronizando || !COLA.length || DEMO) return;
   sincronizando=true; pintarSync();
   const lote = COLA.slice();
+  let ok=false, err="";
   try{
     const r = await fetch(CONFIG.URL_PLANILLA, {
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify({clave: getClave(), cambios: lote})
     });
-    const j = await r.json();
-    if(j.ok){ COLA = COLA.slice(lote.length); store.set("cola",COLA); }
+    let j;
+    try{ j = await r.json(); }
+    catch(e){ err="La planilla respondió con una página de error en vez de datos. Revisa en Apps Script → Implementar → Gestionar implementaciones que la versión activa sea la última"; throw e; }
+    if(j.ok){ COLA = COLA.slice(lote.length); store.set("cola",COLA); ok=true; VERSION_SYNC++; }
     else if(j.error==="clave"){
-      if(CONFIG.CLAVE) toast("La CLAVE del index.html no coincide con la del Apps Script");
-      else { store.del("clave"); pantallaClave("La clave cambió — vuelve a entrar"); }
+      err="La CLAVE del index.html no coincide con la del Apps Script";
+      if(!CONFIG.CLAVE){ store.del("clave"); pantallaClave("La clave cambió — vuelve a entrar"); }
     }
-    else toast("No se pudo guardar: "+j.error);
-  }catch(e){ /* sin conexión: queda en cola */ }
+    else err="La planilla rechazó el cambio: "+j.error;
+  }catch(e){ if(!err) err = navigator.onLine===false? "Sin internet: se guardará cuando vuelva la conexión" : "No pude comunicarme con la planilla (se reintentará sola)"; }
+  if(err && err!==ERROR_SYNC) toast(err);
+  ERROR_SYNC = ok? "" : err;
   sincronizando=false; pintarSync();
-  if(COLA.length && navigator.onLine!==false) setTimeout(sincronizar, 30000);
+  if(RUTA.v==="ajustes" && DB) render();
+  if(COLA.length && navigator.onLine!==false) setTimeout(sincronizar, ok? 100 : 30000);
 }
 
 async function cargar(fondo){
@@ -364,6 +397,7 @@ async function cargar(fondo){
   const clave = getClave();
   if(!clave){ pantallaClave(); return; }
   if(!fondo) pantallaCarga();
+  const v0 = VERSION_SYNC;
   try{
     const r = await fetch(CONFIG.URL_PLANILLA + "?clave=" + encodeURIComponent(clave) + "&action=all");
     const j = await r.json();
@@ -375,6 +409,7 @@ async function cargar(fondo){
       else pantallaError("Error de la planilla: "+j.error);
       return;
     }
+    if(fondo && (v0!==VERSION_SYNC || sincronizando)) return;   // llegó tarde: se guardó algo entretanto
     DB = j.datos;
     COLA.forEach(c=>aplicarLocal(c));      // re-aplica lo pendiente de guardar
     store.set("cache",DB);
@@ -393,7 +428,7 @@ const esActivo = r => String(r.activo)!=="0";
 function ramos(){ return (DB.Ramos||[]).filter(esActivo).sort((a,b)=>(+a.orden||99)-(+b.orden||99)); }
 function ramo(id){ return (DB.Ramos||[]).find(r=>r.id===id); }
 function fechasRamo(id){ return (DB.Fechas||[]).filter(f=>f.ramo===id).sort((a,b)=>(a.fecha+a.ini).localeCompare(b.fecha+b.ini)); }
-function activas(id){ return fechasRamo(id).filter(f=>f.estado!=="suspendida"); }
+function activas(id){ const fs=new Set(feriados()); return fechasRamo(id).filter(f=>f.estado!=="suspendida" && !fs.has(f.fecha)); }
 function conNumero(id){ return activas(id).map((f,i)=>Object.assign({},f,{n:i+1})); }
 function numDe(id,fila){ const a=activas(id); const i=a.findIndex(x=>x.id===fila.id); return i<0? null : i+1; }
 function slotFila(id,n){ const a=conNumero(id); return a[n-1]||null; }
@@ -515,7 +550,7 @@ function pintarSync(){
   const el=$("#syncpill"); if(!el) return;
   if(DEMO){ el.className="pill warn"; el.textContent="modo prueba"; el.onclick=null; return; }
   if(sincronizando){ el.className="pill"; el.textContent="guardando…"; }
-  else if(COLA.length){ el.className="pill warn"; el.textContent="⚠︎ "+COLA.length+" por guardar"; el.onclick=()=>sincronizar(); }
+  else if(COLA.length){ el.className="pill warn"; el.textContent="⚠︎ "+COLA.length+" por guardar"; el.onclick=()=>{ if(ERROR_SYNC) toast(ERROR_SYNC); sincronizar(); }; }
   else { el.className="pill"; el.textContent="✓ guardado"; el.onclick=null; }
 }
 
@@ -557,12 +592,11 @@ function vHoy(){
     }
   });
 
-  if(feriados().includes(hoy)) out+=`<div class="card"><div class="t1">🎉 Hoy es feriado</div><div class="t2">No tienes clases.</div></div>`;
-
   // clases de hoy
-  const cls=clasesDelDia(hoy);
+  const cls=esFeriado(hoy)? [] : clasesDelDia(hoy);
   out+=`<div class="sec">Clases de hoy</div>`;
-  if(!cls.length) out+=`<div class="card t2">No tienes clases hoy 😌</div>`;
+  if(esFeriado(hoy)) out+=`<div class="card"><div class="t1">🎉 Hoy es feriado / día sin clases</div><div class="t2">Nada que marcar: estas clases no cuentan para la asistencia.</div></div>`;
+  else if(!cls.length) out+=`<div class="card t2">No tienes clases hoy 😌</div>`;
   else out+=`<div class="card"><div class="list">`+cls.map(c=>filaClaseHoy(c)).join("")+`</div></div>`;
 
   // qué llevar / próxima clase
@@ -615,7 +649,7 @@ function proximoDiaConClases(){
   for(let d=1; d<=10; d++){
     const dt=deISO(hoy); dt.setDate(dt.getDate()+d);
     const iso=dt.getFullYear()+"-"+p2(dt.getMonth()+1)+"-"+p2(dt.getDate());
-    const lista=clasesDelDia(iso).filter(c=>c.f.estado!=="suspendida");
+    const lista=esFeriado(iso)? [] : clasesDelDia(iso).filter(c=>c.f.estado!=="suspendida");
     if(lista.length) return {iso, lista};
   }
   return null;
@@ -829,8 +863,10 @@ function tClases(r){
   const todas=fechasRamo(r.id);
   const hoy=hoyISO();
   let out=`<div class="card" style="${colorVars(r.color)}"><div class="list">`;
+  const fs=new Set(feriados());
   todas.forEach(f=>{
-    const susp=f.estado==="suspendida";
+    const fer=fs.has(f.fecha);
+    const susp=f.estado==="suspendida" || fer;
     const n=susp? null : numDe(r.id,f);
     const p=n? progDe(r.id,n):null;
     const pasada=claseTerminada(f);
@@ -839,6 +875,7 @@ function tClases(r){
       <div class="grow ${susp?"strike":""}">
         <div class="t1" style="font-size:14.5px">${fF(f.fecha)} <span class="t3 tnum">${f.ini}</span>
           ${f.fecha===hoy?`<span class="badge good">HOY</span>`:""}
+          ${fer?`<span class="badge">🎉 feriado</span>`:""}
           ${p&&p.eval?` <span class="badge ev">📌 ${h(p.eval)}</span>`:""}
           ${f.estado==="falte"?`<span class="badge crit">falté</span>`:f.estado==="justificada"?`<span class="badge warn">justif.</span>`:""}</div>
         ${p&&p.tema?`<div class="t2 ell">${h(p.tema)}</div>`:""}
@@ -849,7 +886,7 @@ function tClases(r){
   });
   out+=`</div></div>
   <button class="btn" onclick='mAgregarClase("${r.id}")'>＋ Agregar clase (recuperativa / extra)</button>
-  <div class="hint">Toca ⋯ para marcar una clase como <b>suspendida</b> (feriado, paro, no hubo). La numeración y las fechas de controles se recalculan solas.</div>`;
+  <div class="hint">Toca ⋯ para marcar una clase como <b>suspendida</b> (feriado, paro, no hubo) o para <b>eliminarla</b>. La numeración y las fechas de controles se recalculan solas.</div>`;
   return out;
 }
 
@@ -908,24 +945,30 @@ function vCal(){
     const iso=RUTA.sel;
     out+=`<div class="sec">${fFL(iso)}</div><div class="card"><div class="list">`;
     let algo=false;
-    if(fers.includes(iso)){ out+=`<div class="t2">🎉 Feriado — no hay clases</div>`; algo=true; }
+    const fer=fers.includes(iso);
+    if(fer){ out+=`<div class="t2">🎉 Feriado / día sin clases — lo de este día no cuenta para la asistencia</div>`; algo=true; }
     proximasEvalsTodas().filter(x=>x.iso===iso).forEach(x=>{
       algo=true;
       out+=`<div class="row" style="${colorVars(x.ramo.color)}" onclick='nav({v:"ramo",id:"${x.ramo.id}",tab:"evals"})'>
         <span class="dot"></span><div class="grow"><div class="t1">📌 ${h(x.ev.nombre)}</div>
-        <div class="t3">${x.ramo.emoji} ${h(x.ramo.nombre)}${x.auto?` · clase ${x.n} (auto)`:""}</div></div><span class="t3">›</span></div>`;
+        <div class="t3">${x.ramo.emoji} ${h(x.ramo.nombre)}${x.auto?` · clase ${x.n} (auto)`:""}</div></div>
+        <button class="iconbtn" aria-label="Editar o eliminar" onclick='event.stopPropagation();mFechaEval("${x.ev.id}")'>⋯</button></div>`;
     });
     clasesDelDia(iso).forEach(c=>{
       algo=true;
       const p=c.n? progDe(c.ramo.id,c.n):null;
-      out+=`<div class="row" style="${colorVars(c.ramo.color)}">
+      out+=`<div class="row" style="${colorVars(c.ramo.color)};cursor:pointer" onclick='mClase("${c.f.id}")'>
         <span class="dot"></span>
-        <div class="grow ${c.f.estado==="suspendida"?"strike":""}"><div class="t2"><b class="tnum">${c.f.ini}</b> · ${c.ramo.emoji} ${h(c.ramo.nombre)}${c.n?` <span class="t3">(clase ${c.n})</span>`:""}</div>
+        <div class="grow ${c.f.estado==="suspendida"||fer?"strike":""}"><div class="t2"><b class="tnum">${c.f.ini}</b> · ${c.ramo.emoji} ${h(c.ramo.nombre)}${c.n?` <span class="t3">(clase ${c.n})</span>`:""}</div>
         ${p&&p.tema?`<div class="t3 ell">${h(p.tema)}</div>`:""}</div>
-        ${c.f.estado==="suspendida"?`<span class="badge">suspendida</span>`:""}</div>`;
+        ${fer?`<span class="badge">feriado</span>`:c.f.estado==="suspendida"?`<span class="badge">suspendida</span>`:""}
+        <button class="iconbtn" aria-label="Opciones de la clase" onclick='event.stopPropagation();mClase("${c.f.id}")'>⋯</button></div>`;
     });
     if(!algo) out+=`<div class="t2">Sin clases ni evaluaciones.</div>`;
-    out+=`</div></div>`;
+    out+=`</div>`;
+    if(fer) out+=`<button class="btn mini" style="width:100%;margin-top:12px" onclick='quitarFeriado("${iso}")'>↩️ Quitar feriado (sí hubo clases)</button>`;
+    else if(clasesDelDia(iso).length) out+=`<button class="btn mini" style="width:100%;margin-top:12px" onclick='agregarFeriados(["${iso}"])'>🎉 Marcar como feriado / día sin clases</button>`;
+    out+=`</div>`;
   }
 
   // todas las próximas (3 primeras + "ver más") + sin fecha
@@ -989,7 +1032,7 @@ function vAjustes(){
       <button class="btn mini" onclick="cargar()">↻ Recargar datos</button>
       ${CONFIG.CLAVE?"":`<button class="btn mini" onclick='mConfirm("¿Salir? Tendrás que escribir la clave de nuevo.",()=>{store.del("clave");location.reload();})'>Cambiar clave</button>`}
     </div>
-    ${COLA.length?`<div class="hint">⚠︎ Hay ${COLA.length} cambio(s) sin guardar en la planilla. <b onclick="sincronizar()" style="color:var(--acc)">Reintentar ahora</b></div>`:""}`;
+    ${COLA.length?`<div class="hint">⚠︎ Hay ${COLA.length} cambio(s) sin guardar en la planilla${ERROR_SYNC?`: <b>${h(ERROR_SYNC)}</b>`:""}. <b onclick="sincronizar()" style="color:var(--acc);cursor:pointer">Reintentar ahora</b></div>`:""}`;
   }
   out+=`</div>`;
 
@@ -1005,12 +1048,49 @@ function vAjustes(){
   });
   out+=`</div><button class="btn" style="margin-top:12px" onclick="mAgregarRamo()">＋ Agregar ramo</button></div>`;
 
+  // feriados y semanas sin clases
+  const grupos=gruposFeriados();
+  out+=`<div class="sec">Feriados y días sin clases</div><div class="card">
+    <div class="t3">Las clases de estos días <b>no cuentan</b> para la asistencia (ni como asistidas ni como faltas) y la numeración de clases se corre sola.</div>
+    <div class="list" style="margin-top:8px">`+
+    (grupos.length? grupos.map(([a,b])=>{
+      const n=rangoISO(a,b).length, c=clasesEnFechas(rangoISO(a,b));
+      return `<div class="row">
+        <div class="grow"><div class="t1" style="font-size:14.5px">🎉 ${a===b? fF(a) : fF(a)+" – "+fF(b)}</div>
+        <div class="t3">${n>1? n+" días · ":""}${c? c+" clase"+(c>1?"s":"")+" sin contar" : "sin clases ese día"}</div></div>
+        <button class="iconbtn" aria-label="Quitar" onclick='quitarFeriado("${a}","${b}")'>✕</button></div>`;
+    }).join("") : `<div class="t2">No hay feriados.</div>`)+`</div>
+    <div class="frow" style="margin-top:12px">
+      <div class="fld" style="margin:0"><label>Desde</label><input id="fer_desde" type="date" class="inp" value="${hoyISO()}"></div>
+      <div class="fld" style="margin:0"><label>Hasta (opcional)</label><input id="fer_hasta" type="date" class="inp"></div>
+    </div>
+    <button class="btn" style="margin-top:10px" onclick="agregarFeriadoForm()">＋ Agregar feriado o semana sin clases</button>
+  </div>`;
+
   out+=`<div class="sec">Acerca de</div><div class="card t3">
     ${h(cfg("nombre_app")||CONFIG.NOMBRE_APP)} · semestre ${h(cfg("semestre"))} · hecha con los programas oficiales de tus cursos y tu horario.
-    Los datos viven en tu planilla de Google (pestañas Ramos, Fechas, Programa, Componentes, Evaluaciones).
-    Feriados considerados: ${feriados().map(fF).join(" · ")||"—"}.</div>`;
+    Los datos viven en tu planilla de Google (pestañas Ramos, Fechas, Programa, Componentes, Evaluaciones y Config).</div>`;
   return out;
 }
+function agregarFeriadoForm(){
+  const a=$("#fer_desde").value, b=$("#fer_hasta").value||a;
+  if(!a){ toast("Elige la fecha"); return; }
+  if(b<a){ toast("La fecha final es antes que la inicial"); return; }
+  const dias=rangoISO(a,b);
+  if(dias.length>60){ toast("Máximo 60 días seguidos"); return; }
+  agregarFeriados(dias);
+}
+function agregarFeriados(dias){
+  const c=clasesEnFechas(dias);
+  setFeriados(feriados().concat(dias));
+  toast(dias.length>1? `${dias.length} días sin clases · ${c} clase${c===1?"":"s"} dejan de contar` : `Feriado agregado · ${c} clase${c===1?"":"s"} dejan de contar`);
+}
+function quitarFeriado(a,b){
+  const quitar=new Set(rangoISO(a,b||a));
+  setFeriados(feriados().filter(x=>!quitar.has(x)));
+  toast("Feriado quitado");
+}
+
 
 /* ================================================================
    MODALES
@@ -1092,36 +1172,53 @@ function mClase(fid){
   const f=(DB.Fechas||[]).find(x=>x.id===fid);
   const r=ramo(f.ramo);
   const susp=f.estado==="suspendida";
-  const extra=String(f.id).includes("-x");
+  const fer=esFeriado(f.fecha);
+  const serie=clasesSerie(f);
+  const dNom=DIASL[deISO(f.fecha).getDay()];
   abrirModal(`<h3>${h(r.nombre)} · ${fF(f.fecha)}</h3>
     <div class="t2 tnum">${f.ini}–${f.fin}</div>
+    ${fer?`<div class="hint">🎉 Este día está marcado como <b>feriado / sin clases</b>: la clase no cuenta para la asistencia. Puedes quitar el feriado desde el Calendario o Ajustes.</div>`:""}
     <div style="margin-top:14px;display:grid;gap:8px">
-      ${!susp?`<button class="btn" onclick='cerrarModal();setEstado("${fid}","suspendida")'>🚫 No hubo clase (suspendida)</button>`
+      ${fer?"":!susp?`<button class="btn" onclick='cerrarModal();setEstado("${fid}","suspendida")'>🚫 No hubo clase (suspendida)</button>`
              :`<button class="btn" onclick='cerrarModal();setEstado("${fid}","")'>↩️ Sí hubo clase (restaurar)</button>`}
-      ${!susp && !asistOff(f.ramo)?`<div class="seg3" style="justify-content:center">
+      ${!fer && !susp && !asistOff(f.ramo)?`<div class="seg3" style="justify-content:center">
         <button class="${(f.estado||"")===""?"on a":""}" onclick='cerrarModal();setEstado("${fid}","")'>✓ Asistí</button>
         <button class="${f.estado==="falte"?"on f":""}" onclick='cerrarModal();setEstado("${fid}","falte")'>✕ Falté</button>
         <button class="${f.estado==="justificada"?"on j":""}" onclick='cerrarModal();setEstado("${fid}","justificada")'>Justif.</button>
       </div>`:""}
-      ${extra?`<button class="btn danger" onclick='mConfirm("¿Eliminar esta clase agregada?",()=>{cerrarModal();guardar({tabla:"Fechas",borrar:["${fid}"]})})'>Eliminar esta clase</button>`:""}
+      <button class="btn danger" onclick='mConfirm("¿Eliminar esta clase del ${fF(f.fecha)}? Desaparece del calendario (no queda tachada).",()=>borrarClases("${fid}",false))'>🗑 Eliminar esta clase</button>
+      ${serie.length>1?`<button class="btn danger" onclick='mConfirm("¿Eliminar las ${serie.length} clases de los ${dNom} ${f.ini} desde el ${fF(f.fecha)} en adelante?",()=>borrarClases("${fid}",true))'>🗑 Eliminar todas las de los ${dNom} ${f.ini} desde aquí (${serie.length})</button>`:""}
     </div>
-    <div class="hint">Al suspender, la numeración de las clases siguientes y las evaluaciones "auto" se recalculan solas.</div>`);
+    <div class="hint"><b>Suspendida</b> la deja tachada (útil para feriados o paros). <b>Eliminar</b> la borra del todo (útil si el horario quedó mal). En ambos casos la numeración de las clases siguientes y las evaluaciones "auto" se recalculan solas.</div>`);
+}
+/* clases del mismo bloque (mismo ramo, día de la semana y hora) desde esa fecha */
+function clasesSerie(f){
+  const dow=deISO(f.fecha).getDay();
+  return fechasRamo(f.ramo).filter(x=>x.fecha>=f.fecha && deISO(x.fecha).getDay()===dow && String(x.ini)===String(f.ini));
+}
+function borrarClases(fid, serie){
+  const f=(DB.Fechas||[]).find(x=>x.id===fid); if(!f) return;
+  const ids = serie? clasesSerie(f).map(x=>x.id) : [fid];
+  cerrarModal();
+  guardar({tabla:"Fechas", borrar:ids});
+  toast(ids.length===1? "Clase eliminada" : ids.length+" clases eliminadas");
 }
 
 /* ---- agregar clase extra ---- */
 function mAgregarClase(ramoId){
   abrirModal(`<h3>＋ Clase extra</h3>
     <div class="fld"><label>Fecha</label><input id="m_fecha" type="date" class="inp" value="${hoyISO()}"></div>
-    <div class="frow">
-      <div class="fld"><label>Desde</label><input id="m_ini" type="time" class="inp" value="10:00"></div>
-      <div class="fld"><label>Hasta</label><input id="m_fin" type="time" class="inp" value="11:10"></div>
-    </div>
+    <div class="fld"><label>Hora de inicio</label><input id="m_ini" type="time" class="inp" value="10:00" oninput="$('#m_finTxt').textContent=finDe(this.value)||'—'"></div>
+    <div class="hint" style="margin-top:-4px">Termina a las <b id="m_finTxt">${finDe("10:00")}</b> (${+CONFIG.DURACION_CLASE||70} min)</div>
     <button class="btn primary" onclick='crearClase("${ramoId}")'>Agregar</button>`);
 }
 function crearClase(ramoId){
   const f=$("#m_fecha").value; if(!f){ toast("Falta la fecha"); return; }
+  const ini=$("#m_ini").value||""; if(!ini){ toast("Falta la hora de inicio"); return; }
+  const fin=finDe(ini);   // leer antes de cerrar el modal
   cerrarModal();
-  guardar({tabla:"Fechas", rows:[{id:uid(ramoId+"-f"), ramo:ramoId, fecha:f, ini:$("#m_ini").value||"", fin:$("#m_fin").value||"", estado:""}]});
+  guardar({tabla:"Fechas", rows:[{id:uid(ramoId+"-f"), ramo:ramoId, fecha:f, ini, fin, estado:""}]});
+  toast("Clase agregada");
 }
 
 /* ---- agregar evaluación (desde calendario) ---- */
@@ -1149,7 +1246,7 @@ function crearEval(){
 
 /* ---- agregar ramo ---- */
 function mAgregarRamo(){
-  window.__hor=[{d:1,i:"10:00",f:"11:10"}];
+  window.__hor=[{d:1,i:"10:00"}];
   window.__comps=[{nombre:"Pruebas",peso:60},{nombre:"Controles",peso:40}];
   window.__color=PALETA[5][0];
   abrirModal(`<h3>＋ Agregar ramo</h3>
@@ -1163,8 +1260,9 @@ function mAgregarRamo(){
     <div class="fld"><label>Asistencia mínima</label><select id="r_min" class="inp">
       <option value="">No exige</option><option>60</option><option>70</option><option value="75">75</option><option value="80" selected>80</option><option>85</option>
     </select></div>
-    <div class="fld"><label>Horario semanal</label><div id="r_hor"></div>
-      <button class="btn mini" style="margin-top:6px" onclick="window.__hor.push({d:1,i:'10:00',f:'11:10'});pintarHorario()">＋ otro día</button></div>
+    <div class="fld"><label>Horario semanal · hora de inicio</label><div id="r_hor"></div>
+      <button class="btn mini" style="margin-top:6px" onclick="window.__hor.push({d:1,i:'10:00'});pintarHorario()">＋ otro día</button>
+      <div class="hint">Cada clase dura ${+CONFIG.DURACION_CLASE||70} min: el término se calcula solo. ¿Módulo doble? Agrega el mismo día otra vez con la hora del segundo módulo.</div></div>
     <div class="frow">
       <div class="fld"><label>Primera clase</label><input id="r_desde" type="date" class="inp" value="${hoyISO()}"></div>
       <div class="fld"><label>Última clase</label><input id="r_hasta" type="date" class="inp" value="${h(cfg("fin_clases")||hoyISO())}"></div>
@@ -1180,16 +1278,17 @@ function pintarHorario(){
   const DS=[["1","lunes"],["2","martes"],["3","miércoles"],["4","jueves"],["5","viernes"],["6","sábado"]];
   $("#r_hor").innerHTML=window.__hor.map((hr,i)=>`<div class="frow" style="margin-bottom:6px">
     <select class="inp" onchange="window.__hor[${i}].d=+this.value">${DS.map(([v,t])=>`<option value="${v}" ${+v===hr.d?"selected":""}>${t}</option>`).join("")}</select>
-    <input type="time" class="inp" value="${hr.i}" onchange="window.__hor[${i}].i=this.value">
-    <input type="time" class="inp" value="${hr.f}" onchange="window.__hor[${i}].f=this.value">
-    <button class="iconbtn" onclick="window.__hor.splice(${i},1);pintarHorario()">✕</button>
+    <input type="time" class="inp" value="${hr.i}" oninput="setHorIni(${i},this.value)" onchange="setHorIni(${i},this.value)">
+    <span class="t3 tnum" id="r_fin${i}" style="flex:none;align-self:center;white-space:nowrap">→ ${finDe(hr.i)||"—"}</span>
+    <button class="iconbtn" style="flex:none;align-self:center" onclick="window.__hor.splice(${i},1);pintarHorario()">✕</button>
   </div>`).join("");
 }
+function setHorIni(i,v){ window.__hor[i].i=v; const el=$("#r_fin"+i); if(el) el.textContent="→ "+(finDe(v)||"—"); }
 function pintarComps(){
   $("#r_comps").innerHTML=window.__comps.map((c,i)=>`<div class="frow" style="margin-bottom:6px">
-    <input class="inp" placeholder="nombre" value="${h(c.nombre)}" onchange="window.__comps[${i}].nombre=this.value">
-    <input class="inp" type="number" style="max-width:86px" placeholder="%" value="${c.peso||""}" onchange="window.__comps[${i}].peso=+this.value;pintarSuma()">
-    <button class="iconbtn" onclick="window.__comps.splice(${i},1);pintarComps()">✕</button>
+    <input class="inp" placeholder="nombre" value="${h(c.nombre)}" oninput="window.__comps[${i}].nombre=this.value">
+    <input class="inp" type="number" inputmode="decimal" style="max-width:86px" placeholder="%" value="${c.peso||""}" oninput="window.__comps[${i}].peso=+String(this.value).replace(',','.');pintarSuma()">
+    <button class="iconbtn" style="flex:none;align-self:center" onclick="window.__comps.splice(${i},1);pintarComps()">✕</button>
   </div>`).join("");
   pintarSuma();
 }
@@ -1199,7 +1298,7 @@ function pintarSuma(){
 }
 function crearRamo(){
   const nom=$("#r_nom").value.trim(); if(!nom){ toast("Ponle nombre al ramo"); return; }
-  const hor=window.__hor.filter(x=>x.d&&x.i&&x.f);
+  const hor=window.__hor.filter(x=>x.d&&x.i).map(x=>({d:+x.d, i:x.i, f:finDe(x.i)}));
   if(!hor.length){ toast("Agrega al menos un día de clases"); return; }
   const desde=$("#r_desde").value, hasta=$("#r_hasta").value;
   if(!desde||!hasta||hasta<desde){ toast("Revisa las fechas de inicio y fin"); return; }
@@ -1211,24 +1310,26 @@ function crearRamo(){
   const id="ramo-"+Date.now().toString(36);
   const sig=($("#r_sig").value.trim()||nom.toUpperCase().slice(0,6)).split("-");
   const fers=feriados();
-  const fechas=[]; let d=deISO(desde); const fin=deISO(hasta); let k=0;
+  const fechas=[]; let d=deISO(desde); const fin=deISO(hasta); let k=0;   // incluye días feriado: no cuentan mientras sigan marcados como feriado
   while(d<=fin && fechas.length<200){
     const isoD=d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate());
     const dow=d.getDay()===0?7:d.getDay();
-    hor.filter(x=>+x.d===dow).forEach(x=>{ if(!fers.includes(isoD)) fechas.push({id:id+"-f"+p2(++k), ramo:id, fecha:isoD, ini:x.i, fin:x.f, estado:""}); });
+    hor.filter(x=>+x.d===dow).forEach(x=>{ fechas.push({id:id+"-f"+p2(++k), ramo:id, fecha:isoD, ini:x.i, fin:x.f, estado:""}); });
     d.setDate(d.getDate()+1);
   }
   const DIA_TXT={1:"Lu",2:"Ma",3:"Mi",4:"Ju",5:"Vi",6:"Sa"};
+  // ⚠️ leer los campos ANTES de cerrar el modal (al cerrarlo, los inputs dejan de existir)
+  const prof=$("#r_prof").value.trim(), emo=$("#r_emo").value.trim()||"📘", amin=$("#r_min").value;
   cerrarModal();
   guardar(
-    {tabla:"Ramos", rows:[{id, nombre:nom, sigla:sig[0]||"", seccion:sig[1]||"", profesor:$("#r_prof").value.trim(), emoji:$("#r_emo").value.trim()||"📘",
-      color:window.__color, asist_min:$("#r_min").value, orden:(DB.Ramos||[]).length+1,
+    {tabla:"Ramos", rows:[{id, nombre:nom, sigla:sig[0]||"", seccion:sig[1]||"", profesor:prof, emoji:emo,
+      color:window.__color, asist_min:amin, orden:(DB.Ramos||[]).length+1,
       horario_txt:hor.map(x=>`${DIA_TXT[x.d]} ${x.i}–${x.f}`).join(" · "), horario_json:JSON.stringify(hor), eximicion:"", reglas:"", activo:1}]},
     {tabla:"Fechas", rows:fechas},
     {tabla:"Componentes", rows:comps.map((c,i)=>({id:id+"-c"+(i+1), ramo:id, nombre:c.nombre.trim(), peso:+c.peso, detalle:"", es_examen:0, nota_min:"", prom_directo:""}))}
   );
   nav({v:"ramo", id, tab:"asist"});
-  toast("Ramo creado con "+fechas.length+" clases");
+  toast("Ramo creado con "+fechas.filter(f=>!fers.includes(f.fecha)).length+" clases");
 }
 
 /* ================================================================
