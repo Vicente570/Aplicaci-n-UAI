@@ -177,7 +177,7 @@ h1,h2,h3{margin:0;font-weight:700}
   box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:88%;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none}
 .toast.on{opacity:1}
 
-/* pantalla clave / carga */
+/* pantalla de carga */
 .gate{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
 .gate .box{width:100%;max-width:340px;text-align:center}
 .gate .logo{width:86px;height:86px;border-radius:22px;margin:0 auto 14px;background:linear-gradient(135deg,#2a78d6,#4a3aa7);
@@ -200,7 +200,7 @@ h1,h2,h3{margin:0;font-weight:700}
    CONFIGURACIÓN — lo único que se edita a mano
    ================================================================ */
 const CONFIG = {
-  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbxFy7kJPTaD-BU36rfGMrR9nY1MTncvom6tiWulSeCwc81xWe13rdu5O3qOT-Hiwp8oUw/exec",        // ← pega aquí la URL /exec de tu Apps Script
+  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbyci9cj4_8pFcdeUYwGaT7JFO38ZUmcXj76iNzcUhnzH832om7L8T7d-P-0Nqk3izXUMw/exec",        // ← pega aquí la URL /exec de tu Apps Script
   NOMBRE_APP:   "Mis Ramos",
   DURACION_CLASE: 70     // ← minutos que dura cada clase (1 h 10 min). La hora de término se calcula sola.
 };
@@ -272,6 +272,7 @@ function colorVars(hex){
    DATOS + SINCRONIZACIÓN
    ================================================================ */
 let DB = null;
+store.del("clave");   // la app ya no usa clave
 let COLA = store.get("cola") || [];
 let sincronizando = false;
 let VERSION_SYNC = 0;   // sube cada vez que se guarda algo en la planilla
@@ -334,13 +335,13 @@ async function sincronizar(){
     const r = await fetch(CONFIG.URL_PLANILLA, {
       method:"POST",
       headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({clave: store.get("clave"), cambios: lote})
+      body: JSON.stringify({cambios: lote})
     });
     let j;
     try{ j = await r.json(); }
     catch(e){ err="La planilla respondió con una página de error en vez de datos. Revisa en Apps Script → Implementar → Gestionar implementaciones que la versión activa sea la última"; throw e; }
     if(j.ok){ COLA = COLA.slice(lote.length); store.set("cola",COLA); ok=true; VERSION_SYNC++; }
-    else if(j.error==="clave"){ err="La clave cambió — vuelve a entrar"; store.del("clave"); pantallaClave(err); }
+    else if(j.error==="clave"){ err="Tu Apps Script todavía pide clave: pega el código nuevo (Codigo.gs) y publícalo en Implementar → Gestionar implementaciones → ✏️ → Nueva versión"; }
     else err="La planilla rechazó el cambio: "+j.error;
   }catch(e){ if(!err) err = navigator.onLine===false? "Sin internet: se guardará cuando vuelva la conexión" : "No pude comunicarme con la planilla (se reintentará sola)"; }
   if(err && err!==ERROR_SYNC) toast(err);
@@ -352,15 +353,13 @@ async function sincronizar(){
 
 async function cargar(fondo){
   if(DEMO){ DB = clon(DATOS_DEMO); arrancar(); return; }
-  const clave = store.get("clave");
-  if(!clave){ pantallaClave(); return; }
   if(!fondo) pantallaCarga();
   const v0 = VERSION_SYNC;
   try{
-    const r = await fetch(CONFIG.URL_PLANILLA + "?clave=" + encodeURIComponent(clave) + "&action=all");
+    const r = await fetch(CONFIG.URL_PLANILLA + "?action=all");
     const j = await r.json();
     if(!j.ok){
-      if(j.error==="clave"){ store.del("clave"); pantallaClave("Clave incorrecta"); }
+      if(j.error==="clave") pantallaError("Tu Apps Script todavía pide clave: pega el código nuevo (Codigo.gs) y publícalo en Implementar → Gestionar implementaciones → ✏️ → Nueva versión.");
       else pantallaError("Error de la planilla: "+j.error);
       return;
     }
@@ -957,7 +956,6 @@ function vAjustes(){
     <div class="t3 ell" style="margin-top:2px">${h(CONFIG.URL_PLANILLA)}</div>
     <div class="row" style="margin-top:12px;gap:8px">
       <button class="btn mini" onclick="cargar()">↻ Recargar datos</button>
-      <button class="btn mini" onclick='mConfirm("¿Salir? Tendrás que escribir la clave de nuevo.",()=>{store.del("clave");location.reload();})'>Cambiar clave</button>
     </div>
     ${COLA.length?`<div class="hint">⚠︎ Hay ${COLA.length} cambio(s) sin guardar en la planilla${ERROR_SYNC?`: <b>${h(ERROR_SYNC)}</b>`:""}. <b onclick="sincronizar()" style="color:var(--acc);cursor:pointer">Reintentar ahora</b></div>`:""}`;
   }
@@ -1266,21 +1264,6 @@ function pantallaCarga(){
   $("#gate").innerHTML=`<div class="gate"><div class="box">
     <div class="logo">🎓</div><h2>${h(CONFIG.NOMBRE_APP)}</h2><div class="spin"></div>
     <div class="t3">Cargando tus ramos…</div></div></div>`;
-}
-function pantallaClave(msg){
-  $("#gate").innerHTML=`<div class="gate"><div class="box">
-    <div class="logo">🎓</div><h2>${h(CONFIG.NOMBRE_APP)}</h2>
-    <div class="t2" style="margin:6px 0 16px">${msg?h(msg):"Escribe tu clave para entrar"}</div>
-    <input id="g_clave" class="inp" type="password" placeholder="clave" style="text-align:center" onkeydown="if(event.key==='Enter')entrarClave()">
-    <button class="btn primary" style="margin-top:12px" onclick="entrarClave()">Entrar</button>
-  </div></div>`;
-  setTimeout(()=>{ const i=$("#g_clave"); if(i) i.focus(); },100);
-}
-function entrarClave(){
-  const v=$("#g_clave").value.trim();
-  if(!v){ return; }
-  store.set("clave", v);
-  cargar();
 }
 function pantallaError(msg){
   $("#gate").innerHTML=`<div class="gate"><div class="box">
