@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Mis Ramos</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -223,9 +226,10 @@ h1,h2,h3{margin:0;font-weight:700}
    CONFIGURACIÓN — lo único que se edita a mano
    ================================================================ */
 const CONFIG = {
-  URL_PLANILLA: "",        // ← opcional: URL /exec de tu Apps Script (si la dejas vacía, la app te la pregunta)
-  CLAVE:        "",        // ← opcional: tu clave del Apps Script
-  NOMBRE_APP:   "Mis Ramos"
+  URL_PLANILLA: "https://script.google.com/macros/s/AKfycbyci9cj4_8pFcdeUYwGaT7JFO38ZUmcXj76iNzcUhnzH832om7L8T7d-P-0Nqk3izXUMw/exec",
+  CLAVE:        "-",       // tu Código.gs va SIN clave: este guion es de relleno para que no te la pida
+  NOMBRE_APP:   "Mis Ramos",
+  VER:          "6.2"      // sirve para saber si el archivo que está en línea es el nuevo
 };
 
 let DEMO = false;
@@ -315,8 +319,8 @@ let sincronizando = false;
 
 function cfg(k){ const r=(DB.Config||[]).find(x=>x.id===k); return r? r.valor : ""; }
 function feriados(){ return String(cfg("feriados")||"").split(",").filter(Boolean); }
-function urlPlanilla(){ return String(CONFIG.URL_PLANILLA || store.get("url") || "").trim(); }
-function getClave(){ return String(CONFIG.CLAVE || store.get("clave") || "").trim(); }
+function urlPlanilla(){ return String(store.get("url") || CONFIG.URL_PLANILLA || "").trim(); }
+function getClave(){ return String(store.get("clave") || CONFIG.CLAVE || "").trim(); }
 function claveFija(){ return !!CONFIG.CLAVE; }
 
 /* explica en castellano por qué el servidor rechazó la clave */
@@ -1384,6 +1388,7 @@ function vAjustes(){
   } else {
     out+=`<div class="t1">✓ Conectado a tu planilla</div>
     <div class="t3 ell" style="margin-top:2px">${h(urlPlanilla())}</div>
+    <div class="t3" style="margin-top:2px">app versión ${CONFIG.VER}${CONFIG.URL_PLANILLA?" · URL fija en el archivo":""}</div>
     <div class="row" style="margin-top:12px;gap:8px">
       <button class="btn mini" onclick="cargar()">↻ Recargar</button>
       ${CONFIG.URL_PLANILLA?"":`<button class="btn mini" onclick='mConfirm("¿Desconectar esta planilla? Tus datos siguen guardados en Google.",()=>{store.del("url");store.del("clave");store.del("cache");location.reload();})'>Cambiar planilla</button>`}
@@ -1883,12 +1888,13 @@ function pantallaSetup(msg){
     <div class="logo">🎓</div><h2>${h(CONFIG.NOMBRE_APP)}</h2>
     <div class="t2" style="margin:6px 0 14px">${msg? h(msg) : "Conecta tu planilla de Google para guardar tus ramos, faltas y notas."}</div>
     <div class="fld" style="text-align:left"><label>URL de tu planilla (termina en /exec)</label>
-      <input id="s_url" class="inp" placeholder="https://script.google.com/…/exec" value="${h(store.get("url")||"")}"></div>
+      <input id="s_url" class="inp" placeholder="https://script.google.com/…/exec" value="${h(store.get("url")||CONFIG.URL_PLANILLA||"")}"></div>
     <div class="fld" style="text-align:left"><label>Clave (deja cualquier cosa si tu planilla no la pide)</label>
       <input id="s_clave" class="inp" value="${h(store.get("clave")||"")}"></div>
     <button class="btn primary" onclick="guardarConexion()">Conectar</button>
     <button class="btn" style="margin-top:8px" onclick="entrarDemo()">Ver un ejemplo sin conectar</button>
-    <div class="hint" style="text-align:left;margin-top:14px">¿No tienes la planilla todavía? Sigue la guía de instalación: se crea en Google Sheets, se pega el código y se publica como aplicación web.</div>
+    <div class="hint" style="margin-top:16px;font-weight:600">versión ${CONFIG.VER}</div>
+    <div class="hint" style="text-align:left;margin-top:8px">¿No tienes la planilla todavía? Sigue la guía de instalación: se crea en Google Sheets, se pega el código y se publica como aplicación web.</div>
   </div></div>`;
 }
 function guardarConexion(){
@@ -1919,7 +1925,7 @@ function pantallaError(msg){
     <div class="logo">🎓</div><h2>Ups</h2>
     <div class="t2" style="margin:8px 0 16px;text-align:left;white-space:pre-line">${h(msg)}</div>
     <button class="btn primary" onclick="cargar()">Reintentar</button>
-    ${CONFIG.URL_PLANILLA?"":`<button class="btn" style="margin-top:8px" onclick="pantallaSetup()">Cambiar la conexión</button>`}</div></div>`;
+    <button class="btn" style="margin-top:8px" onclick="pantallaSetup()">Cambiar la conexión</button></div></div>`;
 }
 function arrancar(){
   $("#gate").innerHTML="";
